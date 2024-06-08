@@ -141,12 +141,12 @@ int main()
           switch (type_of_station[i])
           {
           case DELAY:
-            R[i][j] = D[j][i];
+            R[i][j] = D[i][j];
             break;
           case LI:
             for (int l = 1; l <= C; ++l)
               sum += Q[i][l];
-            R[i][j] = D[j][i] * sum;
+            R[i][j] = D[i][j] * sum;
             break;
           case LD:
             for (int j = 1; j <= C; ++j)
@@ -155,7 +155,7 @@ int main()
               {
                 sum += k * p[k - 1] / a[k];
               }
-              R[i][j] = D[j][i] * sum;
+              R[i][j] = D[i][j] * sum;
             }
             break;
           }
