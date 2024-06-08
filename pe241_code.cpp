@@ -109,7 +109,7 @@ int main()
     a[k] = (k <= 64) ? 0.40 + 0.60 * k : 38.80;
 
   /* MVA: Main algorithm */
-  for (int iteration = 0; iteration < 100; ++iteration)
+  for (double error = 0.0; error < 0.01; error += 0.005)
   {
     calc_p();
     for (int k = 1; k <= N; ++k)
@@ -150,7 +150,7 @@ int main()
 
       for (int i = 1; i <= M; ++i)
         for (int j = 1; j <= C; ++j)
-          Q[i][j] = X[j] * R[i][j];
+          Q[i][j] = X[j] * R[i][j]; // TODO: check if X[j] =?= λj
     }
   }
 
