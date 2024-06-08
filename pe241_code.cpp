@@ -1,6 +1,5 @@
 #include <iostream>
-#include <algorithm>
-// #include <vector>
+#include <algorithm> // min()
 
 using namespace std;
 
@@ -11,11 +10,11 @@ enum TypeOfStation
   LI
 };
 
-const int n[2 + 1] = {0, 304, 240};
+const int M = 15; // αριθμός σταθμών (i)
+const int C = 2;  // αριθμός κατηγοριών (j)
+const int n[C + 1] = {0, 304, 240};
 const int N = n[1] + n[2]; // αριθμός εργασιών (k)
 
-const int M = 15;       // αριθμός σταθμών (i)
-const int C = 2;        // αριθμός κατηγοριών (j)
 double Q[M + 1][C + 1]; // see Bard-Schweitzer approximation (algorithm 5.2)
 double X[C + 1];
 const double D[M + 1][C + 1] = {
@@ -69,75 +68,56 @@ double sumD(int j)
   return sum;
 }
 
-void calc_p(int i = 13)
+void calc_p(const int i = 13)
 {
-  double product[N + 1];
-
-  // Calculating p13(0|N)
-
-  double sum = 0;
+  /* Calculating p13(0|N) */
+  double sum = 0.0, product[N + 1];
   for (int k = 1; k <= N; ++k)
   {
     product[k] = 1;
     for (int l = 1; l <= k; ++l)
     {
-      double sum2 = 0;
+      double sum_nominator = 0;
       for (int j = 1; j <= C; ++j)
-      {
-        sum2 += (X[j] * D[i][j]);
-      }
-      product[k] *= sum2 / a[l];
+        sum_nominator += (X[j] * D[i][j]);
+
+      product[k] *= sum_nominator / a[l];
     }
     sum += product[k];
   }
-
   p[0] = 1.0 / (1.0 + sum);
 
-  // Calculating p13(k|N)
-
+  /* Calculating p13(k|N) */
   for (int k = 1; k <= N; ++k)
-  {
     p[k] = p[0] * product[k];
-  }
 }
 
 int main()
 {
-
   /* Initialize Qij */
   for (int j = 1; j <= C; ++j)
-  {
     for (int i = 1; i <= M; ++i)
-    {
       if (type_of_station[i] == LI)
-        Q[i][j] = n[j] / M;
-    }
-  }
+        Q[i][j] = 0 /* TODO: change back n[j] / M */;
 
   /* Initialize Xij (for i=13 only) */
   for (int j = 1; j <= C; ++j)
-  {
     X[j] = min(1 / maxD(j), n[j] / sumD(j));
-  }
 
   /* Initialization of a */
   for (int k = 1; k <= N; ++k)
-  {
     a[k] = (k <= 64) ? 0.40 + 0.60 * k : 38.80;
-  }
 
-  /* Main algorithm */
-
+  /* MVA: Main algorithm */
   for (int iteration = 0; iteration < 100; ++iteration)
   {
     calc_p();
     for (int k = 1; k <= N; ++k)
     {
       for (int i = 1; i <= M; ++i)
-      {
         for (int j = 1; j <= C; ++j)
         {
-          double sum = 0;
+          double sum = 0.0;
           switch (type_of_station[i])
           {
           case DELAY:
@@ -146,87 +126,63 @@ int main()
           case LI:
             for (int l = 1; l <= C; ++l)
               sum += Q[i][l];
-            R[i][j] = D[i][j] * sum;
+            R[i][j] = D[i][j] * (sum + 1.0);
             break;
           case LD:
             for (int j = 1; j <= C; ++j)
             {
               for (int k = 1; k <= N; ++k)
-              {
                 sum += k * p[k - 1] / a[k];
-              }
               R[i][j] = D[i][j] * sum;
             }
             break;
           }
         }
-      }
 
-      // printf("X[j]:\n");
       for (int j = 1; j <= C; ++j)
       {
         double sum = 0.0;
         for (int i = 1; i <= M; ++i)
-        {
           sum += R[i][j];
-        }
+
         X[j] = k / sum;
-        // printf("\tX[%d]: %f\n", j, X[j]);
       }
 
       for (int i = 1; i <= M; ++i)
-      {
         for (int j = 1; j <= C; ++j)
-        {
           Q[i][j] = X[j] * R[i][j];
-        }
-      }
     }
   }
 
   for (int j = 1; j <= C; ++j)
-  {
     for (int i = 1; i <= M; ++i)
-    {
       U[i] = X[j] * D[i][j];
-    }
-  }
 
-  /* TODO: Print results */
-  // Ζητούμενα: X,R,Q,U ανά κατηγορία και συνολικά
-
-  printf("Ρυθμός απόδοσης X ανά κατηγορία:\n\tX_1: %f\n\tX_2: %f\n", X[1], X[2]);
+  /* Display Results */ // X,R,Q,U ανά κατηγορία και συνολικά
+  printf("Ρυθμός απόδοσης Xj:\n\tX_1: %f\n\tX_2: %f\n", X[1], X[2]);
   printf("Συνολικός ρυθμός απόδοσης X: %f\n", X[1] + X[2]);
 
-  double R_total, R_j1, R_j2;
+  printf("Χρόνος απόκρισης Rj:\n");
+  double R_total, R_[C + 1] = {0, 0.0, 0.0};
   for (int j = 1; j <= C; ++j)
   {
-    double sum[j] = {0.0, 0.0};
     for (int i = 1; i <= M; ++i)
-    {
-      sum[j] += R[i][j];
-    }
-    if (j == 1)
-      R_j1 = sum[j];
-    else
-      R_j2 = sum[j];
+      R_[j] += R[i][j];
+
+    printf("\tR_%d: %f\n", j, R_[j]);
   }
-  R_total = R_j1 + R_j2;
+  R_total = R_[1] + R_[2];
+  printf("Συνολικός χρόνος απόκρισης R: %f\n", R_total);
 
-  printf("Χρόνος απόκρισης ανά κατηγορία:\n\tR_1: %f\n\tR_2: %f\n", R_j1, R_j2);
-  printf("Συνολικός χρόνος απόκρισης συστήματος R: %f\n", R_total);
-
-  printf("Μέσος αριθμός εργασιών ανά σταθμό Q_i:\n");
+  printf("Μέσος αριθμός εργασιών Qi:\n");
   double Q_mean[M + 1];
   for (int i = 1; i <= M; ++i)
   {
-    Q_mean[i] = (Q[i][1] + Q[i][2]) / 2;
+    Q_mean[i] = (Q[i][1] + Q[i][2]) /* TODO: change back / 2 */;
     printf("\tQ_%d: %f\n", i, Q_mean[i]);
   }
 
-  printf("Βαθμός χρησιμοποίησης ανά σταθμό U_j:\n");
+  printf("Βαθμός χρησιμοποίησης Ui:\n");
   for (int i = 1; i <= M; ++i)
-  {
     printf("\tU_%d: %f\n", i, U[i]);
-  }
 }
