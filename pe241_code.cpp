@@ -31,7 +31,7 @@ const double D[M + 1][C + 1] = {
     {0, 0.0, 0.025},
     {0, 0.048, 0.058},
     {0, 0.054, 0.066},
-    {0, 0.069, 0.106},
+    {0, 0.069, 0.106}, // Dij(1) (never explicitly used)
     {0, 0.067, 0.072},
     {0, 0.088, 0.096}};
 double D_13[C + 1][N + 1];
@@ -58,14 +58,19 @@ double U[M + 1][C + 1];
 
 double maxD(int j)
 {
-  return D[13][j];
+  double max = D_13[j][13];
+  for (int k = 2; k <= N; ++k)
+    if (max < D_13[j][k])
+      max = D_13[j][k];
+  return max;
 }
 
 double sumD(int j)
 {
+  // return D[13][j];
   double sum = 0.0;
-  for (int i = 1; i <= M; ++i)
-    sum += D[i][j];
+  for (int k = 1; k <= N; ++k)
+    sum += D_13[j][k];
   return sum;
 }
 
@@ -102,8 +107,10 @@ int main()
         Q[i][j] = n[j] / M;
 
   /* Initialize Xij (for i=13 only) */
+  double maxD_value[C + 1] = {maxD(1), maxD(2)};
+  double sumD_value[C + 1] = {sumD(1), sumD(2)};
   for (int j = 1; j <= C; ++j)
-    X[j] = min(1 / maxD(j), n[j] / sumD(j));
+    X[j] = min(1 / maxD_value[j], n[j] / sumD_value[j]);
 
   /* Initialization of a */
   for (int k = 1; k <= N; ++k)
@@ -167,6 +174,7 @@ int main()
       }
   }
 
+  /* Calculation of Uij */
   for (int j = 1; j <= C; ++j)
     for (int i = 1; i <= M; ++i)
       U[i][j] = X[j] * D[i][j];
