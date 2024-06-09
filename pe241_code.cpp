@@ -58,7 +58,7 @@ double U[M + 1][C + 1];
 
 double maxD(int j)
 {
-  double max = D_13[j][13];
+  double max = D_13[j][1];
   for (int k = 2; k <= N; ++k)
     if (max < D_13[j][k])
       max = D_13[j][k];
@@ -85,7 +85,7 @@ void calc_p(const int i = 13)
     {
       double sum_nominator = 0;
       for (int j = 1; j <= C; ++j)
-        sum_nominator += (X[j] * D[i][j]);
+        sum_nominator += (X[j] * D_13[j][l]);
 
       product[k] *= sum_nominator / a[l];
     }
@@ -124,54 +124,52 @@ int main()
       D_13[j][k] = D_13[j][1] / a[k];
 
   /* MVA: Main algorithm */
-  for (int iteration = 0; iteration < 100; ++iteration)
+  for (int iteration = 0; iteration < 1; ++iteration)
   {
     calc_p();
-    int k[C + 1];
-    for (k[1] = 1; k[1] <= n[1]; ++k[1])
-      for (k[2] = 1; k[2] <= n[2]; ++k[2])
-      {
-        // R
-        for (int i = 1; i <= M; ++i)
-          for (int j = 1; j <= C; ++j)
-          {
-            double sum = 0.0;
-            switch (type_of_station[i])
-            {
-            case DELAY:
-              R[i][j] = D[i][j];
-              break;
-            case LI:
-              for (int l = 1; l <= C; ++l)
-                sum += Q[i][l];
-              R[i][j] = D[i][j] * (sum + 1.0);
-              break;
-            case LD:
-              for (int j = 1; j <= C; ++j)
-              {
-                for (int k = 1; k <= N; ++k)
-                  sum += k * p[k - 1] / a[k];
-                R[i][j] = D[i][j] * sum;
-              }
-              break;
-            }
-          }
-
-        // X
+    for (int k = 1; k <= N; ++k)
+    {
+      // R
+      for (int i = 1; i <= M; ++i)
         for (int j = 1; j <= C; ++j)
         {
           double sum = 0.0;
-          for (int i = 1; i <= M; ++i)
-            sum += R[i][j];
-
-          X[j] = k[j] /* n[j] */ / sum;
+          switch (type_of_station[i])
+          {
+          case DELAY:
+            R[i][j] = D[i][j];
+            break;
+          case LI:
+            for (int l = 1; l <= C; ++l)
+              sum += Q[i][l];
+            R[i][j] = D[i][j] * (sum + 1.0);
+            break;
+          case LD:
+            for (int j = 1; j <= C; ++j)
+            {
+              for (int k = 1; k <= N; ++k)
+                sum += k * p[k - 1] / a[k];
+              R[i][j] = D[i][j] * sum;
+            }
+            break;
+          }
         }
 
-        // Q
+      // X
+      for (int j = 1; j <= C; ++j)
+      {
+        double sum = 0.0;
         for (int i = 1; i <= M; ++i)
-          for (int j = 1; j <= C; ++j)
-            Q[i][j] = X[j] * R[i][j]; // TODO: check 'σταθερού ρυθμόυ' =?= LI
+          sum += R[i][j];
+
+        X[j] = n[j] / sum;
       }
+
+      // Q
+      for (int i = 1; i <= M; ++i)
+        for (int j = 1; j <= C; ++j)
+          Q[i][j] = X[j] * R[i][j]; // TODO: check 'σταθερού ρυθμόυ' =?= LI
+    }
   }
 
   /* Calculation of Uij */
@@ -201,7 +199,7 @@ int main()
       printf("\tQ_%d_%d: %f\n", i, j, Q[i][j]);
 
   printf("Αριθμός εργασιών Qi (sum):\n");
-  double Q_sum[M + 1]; /* It was Q_mean */
+  double Q_sum[M + 1];
   for (int i = 1; i <= M; ++i)
   {
     Q_sum[i] = (Q[i][1] + Q[i][2]);
