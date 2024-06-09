@@ -31,7 +31,7 @@ const double D[M + 1][C + 1] = {
     {0, 0.0, 0.025},
     {0, 0.048, 0.058},
     {0, 0.054, 0.066},
-    {0, 0.069, 0.106}, /* TODO: different */
+    {0, 0.069, 0.106},
     {0, 0.067, 0.072},
     {0, 0.088, 0.096}};
 const TypeOfStation type_of_station[M + 1] = {/*DummyValue*/ DELAY,
@@ -53,7 +53,7 @@ const TypeOfStation type_of_station[M + 1] = {/*DummyValue*/ DELAY,
 double a[N + 1];
 double p[N + 1];
 double R[M + 1][C + 1];
-double U[M + 1];
+double U[M + 1][C + 1];
 
 double maxD(int j)
 {
@@ -98,7 +98,7 @@ int main()
   for (int j = 1; j <= C; ++j)
     for (int i = 1; i <= M; ++i)
       if (type_of_station[i] == LI)
-        Q[i][j] = 0 /* TODO: change back n[j] / M */;
+        Q[i][j] = n[j] / M;
 
   /* Initialize Xij (for i=13 only) */
   for (int j = 1; j <= C; ++j)
@@ -109,7 +109,7 @@ int main()
     a[k] = (k <= 64) ? 0.40 + 0.60 * k : 38.80;
 
   /* MVA: Main algorithm */
-  for (double error = 0.0; error < 0.01; error += 0.005)
+  for (int iteration = 0; iteration < 100; ++iteration)
   {
     calc_p();
     for (int k = 1; k <= N; ++k)
@@ -156,7 +156,7 @@ int main()
 
   for (int j = 1; j <= C; ++j)
     for (int i = 1; i <= M; ++i)
-      U[i] = X[j] * D[i][j];
+      U[i][j] = X[j] * D[i][j];
 
   /* Display Results */ // X,R,Q,U ανά κατηγορία και συνολικά
   printf("Ρυθμός απόδοσης Xj:\n\tX_1: %f\n\tX_2: %f\n", X[1], X[2]);
@@ -174,15 +174,32 @@ int main()
   R_total = R_[1] + R_[2];
   printf("Συνολικός χρόνος απόκρισης R: %f\n", R_total);
 
-  printf("Μέσος αριθμός εργασιών Qi:\n");
-  double Q_mean[M + 1];
+  printf("Αριθμός εργασιών Qij:\n");
+  for (int j = 1; j <= C; ++j)
+    for (int i = 1; i <= M; ++i)
+      printf("\tQ_%d_%d: %f\n", i, j, Q[i][j]);
+
+  printf("Αριθμός εργασιών Qi (sum):\n");
+  double Q_sum[M + 1]; /* It was Q_mean */
   for (int i = 1; i <= M; ++i)
   {
-    Q_mean[i] = (Q[i][1] + Q[i][2]) /* TODO: change back / 2 */;
-    printf("\tQ_%d: %f\n", i, Q_mean[i]);
+    Q_sum[i] = (Q[i][1] + Q[i][2]);
+    printf("\tQ_%d: %f\n", i, Q_sum[i]);
   }
 
-  printf("Βαθμός χρησιμοποίησης Ui:\n");
+  printf("Βαθμός χρησιμοποίησης Uij:\n");
+  for (int j = 1; j <= C; ++j)
+    for (int i = 1; i <= M; ++i)
+      printf("\tU_%d_%d: %f\n", i, j, U[i][j]);
+
+  printf("Βαθμός χρησιμοποίησης Ui (sum):\n");
   for (int i = 1; i <= M; ++i)
-    printf("\tU_%d: %f\n", i, U[i]);
+  {
+    double sum = 0.0;
+    for (int j = 1; j <= C; ++j)
+    {
+      sum += U[i][j];
+    }
+    printf("\tU_%d: %f\n", i, sum);
+  }
 }
