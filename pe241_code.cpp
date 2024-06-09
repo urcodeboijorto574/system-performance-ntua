@@ -34,6 +34,7 @@ const double D[M + 1][C + 1] = {
     {0, 0.069, 0.106},
     {0, 0.067, 0.072},
     {0, 0.088, 0.096}};
+double D_13[C + 1][N + 1];
 const TypeOfStation type_of_station[M + 1] = {/*DummyValue*/ DELAY,
                                               /* 1 */ DELAY,
                                               /* 2 */ LI,
@@ -107,6 +108,13 @@ int main()
   /* Initialization of a */
   for (int k = 1; k <= N; ++k)
     a[k] = (k <= 64) ? 0.40 + 0.60 * k : 38.80;
+
+  /* Initialization of D_13jk */
+  D_13[1][1] = D[13][1];
+  D_13[2][1] = D[13][2];
+  for (int j = 1; j <= C; ++j)
+    for (int k = 1; k <= N; ++k)
+      D_13[j][k] = D_13[j][1] / a[k];
 
   /* MVA: Main algorithm */
   for (int iteration = 0; iteration < 100; ++iteration)
