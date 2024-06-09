@@ -112,46 +112,51 @@ int main()
   for (int iteration = 0; iteration < 100; ++iteration)
   {
     calc_p();
-    for (int k = 1; k <= N; ++k)
-    {
-      for (int i = 1; i <= M; ++i)
+    int k[C + 1];
+    for (k[1] = 1; k[1] <= n[1]; ++k[1])
+      for (k[2] = 1; k[2] <= n[2]; ++k[2])
+      {
+        // R
+        for (int i = 1; i <= M; ++i)
+          for (int j = 1; j <= C; ++j)
+          {
+            double sum = 0.0;
+            switch (type_of_station[i])
+            {
+            case DELAY:
+              R[i][j] = D[i][j];
+              break;
+            case LI:
+              for (int l = 1; l <= C; ++l)
+                sum += Q[i][l];
+              R[i][j] = D[i][j] * (sum + 1.0);
+              break;
+            case LD:
+              for (int j = 1; j <= C; ++j)
+              {
+                for (int k = 1; k <= N; ++k)
+                  sum += k * p[k - 1] / a[k];
+                R[i][j] = D[i][j] * sum;
+              }
+              break;
+            }
+          }
+
+        // X
         for (int j = 1; j <= C; ++j)
         {
           double sum = 0.0;
-          switch (type_of_station[i])
-          {
-          case DELAY:
-            R[i][j] = D[i][j];
-            break;
-          case LI:
-            for (int l = 1; l <= C; ++l)
-              sum += Q[i][l];
-            R[i][j] = D[i][j] * (sum + 1.0);
-            break;
-          case LD:
-            for (int j = 1; j <= C; ++j)
-            {
-              for (int k = 1; k <= N; ++k)
-                sum += k * p[k - 1] / a[k];
-              R[i][j] = D[i][j] * sum;
-            }
-            break;
-          }
+          for (int i = 1; i <= M; ++i)
+            sum += R[i][j];
+
+          X[j] = k[j] /* n[j] */ / sum;
         }
 
-      for (int j = 1; j <= C; ++j)
-      {
-        double sum = 0.0;
+        // Q
         for (int i = 1; i <= M; ++i)
-          sum += R[i][j];
-
-        X[j] = k / sum;
+          for (int j = 1; j <= C; ++j)
+            Q[i][j] = X[j] * R[i][j]; // TODO: check 'σταθερού ρυθμόυ' =?= LI
       }
-
-      for (int i = 1; i <= M; ++i)
-        for (int j = 1; j <= C; ++j)
-          Q[i][j] = X[j] * R[i][j]; // TODO: check if X[j] =?= λj
-    }
   }
 
   for (int j = 1; j <= C; ++j)
