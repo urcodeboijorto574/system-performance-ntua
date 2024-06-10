@@ -18,7 +18,7 @@ const int C = 2;  // αριθμός κατηγοριών (j)
 const int n[C + 1] = {DumVal, 304, 240};
 const int N = n[1] + n[2]; // αριθμός εργασιών (k)
 
-double Q[M + 1][C + 1]; // see Bard-Schweitzer approximation (algorithm 5.2)
+double Q[M + 1][C + 1][n[1] + 1][n[2] + 1]; // see Bard-Schweitzer approximation (algorithm 5.2)
 double X[C + 1];
 const double D[M + 1][C + 1] = {
     {DumVal, DumVal, DumVal},
@@ -59,23 +59,23 @@ double p[N + 1];
 double R[M + 1][C + 1];
 double U[M + 1][C + 1];
 
-double maxD(int j)
-{
-  double max = D_13[j][1];
-  for (int k = 2; k <= N; ++k)
-    if (max < D_13[j][k])
-      max = D_13[j][k];
-  return max;
-}
+// double maxD(int j)
+// {
+//   double max = D_13[j][1];
+//   for (int k = 2; k <= N; ++k)
+//     if (max < D_13[j][k])
+//       max = D_13[j][k];
+//   return max;
+// }
 
-double sumD(int j)
-{
-  // return D[13][j];
-  double sum = 0.0;
-  for (int k = 1; k <= N; ++k)
-    sum += D_13[j][k];
-  return sum;
-}
+// double sumD(int j)
+// {
+//   // return D[13][j];
+//   double sum = 0.0;
+//   for (int k = 1; k <= N; ++k)
+//     sum += D_13[j][k];
+//   return sum;
+// }
 
 void calc_p(const int i = 13)
 {
@@ -103,30 +103,30 @@ void calc_p(const int i = 13)
 
 int main()
 {
-  /* Initialize Qij */
-  for (int j = 1; j <= C; ++j)
-    for (int i = 1; i <= M; ++i)
-      if (type_of_station[i] == LI)
-        Q[i][j] = n[j] / M;
-
-  /* Initialize Xij (for i=13 only) */
-  double maxD_value[C + 1] = {DumVal, maxD(1), maxD(2)};
-  double sumD_value[C + 1] = {DumVal, sumD(1), sumD(2)};
-  for (int j = 1; j <= C; ++j)
-    X[j] = min(1 / maxD_value[j], n[j] / sumD_value[j]);
-
-  /* Initialization of a */
-  for (int k = 1; k <= N; ++k)
-    a[k] = (k <= 64) ? 0.40 + 0.60 * k : 38.80;
+  // /* Initialize Xij (for i=13 only) */
+  // double maxD_value[C + 1] = {DumVal, maxD(1), maxD(2)};
+  // double sumD_value[C + 1] = {DumVal, sumD(1), sumD(2)};
+  // for (int j = 1; j <= C; ++j)
+  //   X[j] = min(1 / maxD_value[j], n[j] / sumD_value[j]);
 
   /* Initialization of D_13jk */
   D_13[1][1] = D[13][1];
   D_13[2][1] = D[13][2];
   for (int j = 1; j <= C; ++j)
     for (int k = 1; k <= N; ++k)
+    {
+      a[k] = (k <= 64) ? 0.40 + 0.60 * k : 38.80;
       D_13[j][k] = D_13[j][1] / a[k];
+    }
 
   /* MVA: Main algorithm */
+
+  /* Initialize Qij */
+  for (int i = 1; i <= M; ++i)
+    if (type_of_station[i] == LI)
+      for (int j = 1; j <= C; ++j)
+        Q[i][j][0][0] = 0.0;
+
   for (int iteration = 0; iteration < 1; ++iteration)
   {
     calc_p();
@@ -146,8 +146,8 @@ int main()
               break;
             case LI:
               for (int l = 1; l <= C; ++l)
-                sum += Q[i][l];
-              R[i][j] = D[i][j] * (sum + 1.0);
+                sum += Q[i][l][l == 1 ? k[1] - 1 : k[1]][l == 2 ? k[2] - 1 : k[2]];
+              R[i][j] = D[i][j] * (1.0 + sum);
               break;
             case LD:
               for (int j = 1; j <= C; ++j)
@@ -166,14 +166,13 @@ int main()
           double sum = 0.0;
           for (int i = 1; i <= M; ++i)
             sum += R[i][j];
-
-          X[j] = n[j] / sum;
+          X[j] = k[j] / sum;
         }
 
         // Q
         for (int i = 1; i <= M; ++i)
           for (int j = 1; j <= C; ++j)
-            Q[i][j] = X[j] * R[i][j]; // TODO: check 'σταθερού ρυθμόυ' =?= LI
+            Q[i][j][k[1]][k[2]] = X[j] * R[i][j];
       }
   }
 
@@ -187,7 +186,7 @@ int main()
   printf("Συνολικός ρυθμός απόδοσης X: %f\n", X[1] + X[2]);
 
   printf("Χρόνος απόκρισης Rj:\n");
-  double R_total, R_[C + 1] = {DumVal, 0.0, 0.0};
+  double R_[C + 1] = {DumVal, 0.0, 0.0};
   for (int j = 1; j <= C; ++j)
   {
     for (int i = 1; i <= M; ++i)
@@ -195,19 +194,20 @@ int main()
 
     printf("\tR_%d: %f\n", j, R_[j]);
   }
-  R_total = R_[1] + R_[2];
-  printf("Συνολικός χρόνος απόκρισης R: %f\n", R_total);
+  printf("Συνολικός χρόνος απόκρισης R: %f\n", R_[1] + R_[2]);
 
   printf("Αριθμός εργασιών Qij:\n");
   for (int j = 1; j <= C; ++j)
     for (int i = 1; i <= M; ++i)
-      printf("\tQ_%d_%d: %f\n", i, j, Q[i][j]);
+      printf("\tQ_%d_%d: %f\n", i, j, Q[i][j][n[1]][n[2]]);
 
   printf("Αριθμός εργασιών Qi (sum):\n");
   double Q_sum[M + 1];
   for (int i = 1; i <= M; ++i)
   {
-    Q_sum[i] = (Q[i][1] + Q[i][2]);
+    Q_sum[i] = 0.0;
+    for (int j = 1; j <= C; ++j)
+      Q_sum[i] += Q[i][j][n[1]][n[2]];
     printf("\tQ_%d: %f\n", i, Q_sum[i]);
   }
 
@@ -217,13 +217,12 @@ int main()
       printf("\tU_%d_%d: %f\n", i, j, U[i][j]);
 
   printf("Βαθμός χρησιμοποίησης Ui (sum):\n");
+  double U_sum[M + 1];
   for (int i = 1; i <= M; ++i)
   {
-    double sum = 0.0;
+    U_sum[i] = 0.0;
     for (int j = 1; j <= C; ++j)
-    {
-      sum += U[i][j];
-    }
-    printf("\tU_%d: %f\n", i, sum);
+      U_sum[i] += U[i][j];
+    printf("\tU_%d: %f\n", i, U_sum[i]);
   }
 }
