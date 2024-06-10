@@ -56,69 +56,75 @@ const TypeOfStation type_of_station[M + 1] = {/* DumVal */ DELAY,
                                               /* 14 */ LI,
                                               /* 15 */ LI};
 double a[N + 1];
-double p[N + 1];
+double m[C + 1][N + 1];
+double p[N + 1][N1 + 1][N2 + 1];
 double R[M + 1][C + 1];
 double U[M + 1][C + 1];
-
-// double maxD(int j)
-// {
-//   double max = D_13[j][1];
-//   for (int k = 2; k <= N; ++k)
-//     if (max < D_13[j][k])
-//       max = D_13[j][k];
-//   return max;
-// }
-
-// double sumD(int j)
-// {
-//   // return D[13][j];
-//   double sum = 0.0;
-//   for (int k = 1; k <= N; ++k)
-//     sum += D_13[j][k];
-//   return sum;
-// }
-
-void calc_p(const int i = 13)
-{
-  /* Calculating p13(0|N) */
-  double sum = 0.0, product[N + 1];
-  for (int k = 1; k <= N; ++k)
-  {
-    product[k] = 1;
-    for (int l = 1; l <= k; ++l)
-    {
-      double sum_nominator = 0;
-      for (int j = 1; j <= C; ++j)
-        sum_nominator += (X[j] * D_13[j][l]);
-
-      product[k] *= sum_nominator / a[l];
-    }
-    sum += product[k];
-  }
-  p[0] = 1.0 / (1.0 + sum);
-
-  /* Calculating p13(k|N) */
-  for (int k = 1; k <= N; ++k)
-    p[k] = p[0] * product[k];
-}
+double u[M + 1][C + 1];
 
 int main()
 {
-  // /* Initialize Xij (for i=13 only) */
-  // double maxD_value[C + 1] = {DumVal, maxD(1), maxD(2)};
-  // double sumD_value[C + 1] = {DumVal, sumD(1), sumD(2)};
-  // for (int j = 1; j <= C; ++j)
-  //   X[j] = min(1 / maxD_value[j], n[j] / sumD_value[j]);
-
   /* Initialization of D_13jk */
   D_13[1][1] = D[13][1];
   D_13[2][1] = D[13][2];
-  for (int j = 1; j <= C; ++j)
-    for (int k = 1; k <= N; ++k)
+  for (int k = 1; k <= N; ++k)
+  {
+    a[k] = (k <= 64) ? 0.40 + 0.60 * k : 38.80;
+    for (int j = 1; j <= C; ++j)
     {
-      a[k] = (k <= 64) ? 0.40 + 0.60 * k : 38.80;
       D_13[j][k] = D_13[j][1] / a[k];
+      m[j][k] = 1 / D_13[j][k]; // TODO: check later for validity
     }
+  }
+
+  /* Initialization of p(k|N) */
+  for (int k = 1; k <= N; ++k)
+  {
+    int n1 = (k >= N2 ? k - N2 : 0),
+        n2 = (k >= N2 ? N2 : k);
+    for (; n1 <= N1 && n2 >= 0; ++n1, --n2)
+    {
+      double sum = 0.0;
+      for (int j = 1; j <= C; ++j)
+      {
+        int pos1, pos2;
+        if (n1 == 0 && n2 != 0)
+        {
+          pos1 = 0;
+          pos2 = n2 - 1;
+        }
+        else if (n1 != 0 && n2 == 0)
+        {
+          pos1 = n1 - 1;
+          pos2 = 0;
+        }
+        else if (n1 == 0 && n2 == 0)
+        {
+          pos1 = 0;
+          pos2 = 0;
+        }
+        else
+        {
+          if (j == 1)
+          {
+            pos1 = n1 - 1;
+            pos2 = n2;
+          }
+          else
+          {
+            pos1 = n1;
+            pos2 = n2 - 1;
+          }
+        }
+        sum += X[j] / m[j][k] * p[k - 1][pos1][pos2];
+      }
+      p[k][n1][n2] = sum;
+    }
+  }
+  double sum = 0.0;
+  for (int l = 1; l <= N; ++l)
+    sum += p[l][N1][N2];
+  p[0][N1][N2] = 1 - sum;
 
   /* MVA: Main algorithm */
 
@@ -130,7 +136,6 @@ int main()
 
   for (int iteration = 0; iteration < 1; ++iteration)
   {
-    calc_p();
     int k[3];
     for (k[1] = 0; k[1] <= n[1]; ++k[1])
       for (k[2] = (k[1] ? 0 : 1); k[2] <= n[2]; ++k[2])
@@ -155,12 +160,10 @@ int main()
               R[i][j] = D[i][j] * (1.0 + sum);
               break;
             case LD: // TODO: i think that this is false (see 4.56)
-              for (int j = 1; j <= C; ++j)
-              {
-                for (int k = 1; k <= N; ++k)
-                  sum += k * p[k - 1] / a[k];
-                R[i][j] = D[i][j] * sum;
-              }
+              // This can be calculated only if uij is known, which
+              // in our case it isn't. So, we change to the approximating
+              // techniques for calculating Rij. Goodbyee! ^_^
+              // (Change branch :) )
               break;
             }
           }
