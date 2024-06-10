@@ -15,10 +15,11 @@ enum TypeOfStation
 
 const int M = 15; // αριθμός σταθμών (i)
 const int C = 2;  // αριθμός κατηγοριών (j)
-const int n[C + 1] = {DumVal, 304, 240};
+const int N1 = 304, N2 = 240;
+const int n[C + 1] = {DumVal, N1, N2};
 const int N = n[1] + n[2]; // αριθμός εργασιών (k)
 
-double Q[M + 1][C + 1][n[1] + 1][n[2] + 1]; // see Bard-Schweitzer approximation (algorithm 5.2)
+double Q[M + 1][C + 1][N1 + 1][N2 + 1]; // see Bard-Schweitzer approximation (algorithm 5.2)
 double X[C + 1];
 const double D[M + 1][C + 1] = {
     {DumVal, DumVal, DumVal},
