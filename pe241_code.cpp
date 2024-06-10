@@ -153,7 +153,7 @@ int main()
               }
               R[i][j] = D[i][j] * (1.0 + sum);
               break;
-            case LD:
+            case LD: // TODO: i think that this is false (see 4.56)
               for (int j = 1; j <= C; ++j)
               {
                 for (int k = 1; k <= N; ++k)
