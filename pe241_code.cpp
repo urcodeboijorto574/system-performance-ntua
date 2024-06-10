@@ -3,6 +3,9 @@
 
 using namespace std;
 
+#define DumVal 0 // The 1st element of all the arrays is a dummy value
+                 // so the iteration starts at 1 and ends at its size.
+
 enum TypeOfStation
 {
   DELAY,
@@ -12,30 +15,30 @@ enum TypeOfStation
 
 const int M = 15; // αριθμός σταθμών (i)
 const int C = 2;  // αριθμός κατηγοριών (j)
-const int n[C + 1] = {0, 304, 240};
+const int n[C + 1] = {DumVal, 304, 240};
 const int N = n[1] + n[2]; // αριθμός εργασιών (k)
 
 double Q[M + 1][C + 1]; // see Bard-Schweitzer approximation (algorithm 5.2)
 double X[C + 1];
 const double D[M + 1][C + 1] = {
-    {0, 0, 0},
-    {0, 25.0, 29.0},
-    {0, 0.032, 0.0},
-    {0, 0.0, 0.090},
-    {0, 0.048, 0.134},
-    {0, 0.025, 0.0},
-    {0, 0.0, 0.016},
-    {0, 0.059, 0.0},
-    {0, 0.070, 0.0},
-    {0, 0.0, 0.28},
-    {0, 0.0, 0.025},
-    {0, 0.048, 0.058},
-    {0, 0.054, 0.066},
-    {0, 0.069, 0.106}, // Dij(1) (never explicitly used)
-    {0, 0.067, 0.072},
-    {0, 0.088, 0.096}};
+    {DumVal, DumVal, DumVal},
+    {DumVal, 25.0, 29.0},
+    {DumVal, 0.032, 0.0},
+    {DumVal, 0.0, 0.090},
+    {DumVal, 0.048, 0.134},
+    {DumVal, 0.025, 0.0},
+    {DumVal, 0.0, 0.016},
+    {DumVal, 0.059, 0.0},
+    {DumVal, 0.070, 0.0},
+    {DumVal, 0.0, 0.28},
+    {DumVal, 0.0, 0.025},
+    {DumVal, 0.048, 0.058},
+    {DumVal, 0.054, 0.066},
+    {DumVal, 0.069, 0.106}, // Dij(1) (never explicitly used)
+    {DumVal, 0.067, 0.072},
+    {DumVal, 0.088, 0.096}};
 double D_13[C + 1][N + 1];
-const TypeOfStation type_of_station[M + 1] = {/*DummyValue*/ DELAY,
+const TypeOfStation type_of_station[M + 1] = {/* DumVal */ DELAY,
                                               /* 1 */ DELAY,
                                               /* 2 */ LI,
                                               /* 3 */ LI,
@@ -107,8 +110,8 @@ int main()
         Q[i][j] = n[j] / M;
 
   /* Initialize Xij (for i=13 only) */
-  double maxD_value[C + 1] = {maxD(1), maxD(2)};
-  double sumD_value[C + 1] = {sumD(1), sumD(2)};
+  double maxD_value[C + 1] = {DumVal, maxD(1), maxD(2)};
+  double sumD_value[C + 1] = {DumVal, sumD(1), sumD(2)};
   for (int j = 1; j <= C; ++j)
     X[j] = min(1 / maxD_value[j], n[j] / sumD_value[j]);
 
@@ -184,7 +187,7 @@ int main()
   printf("Συνολικός ρυθμός απόδοσης X: %f\n", X[1] + X[2]);
 
   printf("Χρόνος απόκρισης Rj:\n");
-  double R_total, R_[C + 1] = {0, 0.0, 0.0};
+  double R_total, R_[C + 1] = {DumVal, 0.0, 0.0};
   for (int j = 1; j <= C; ++j)
   {
     for (int i = 1; i <= M; ++i)
