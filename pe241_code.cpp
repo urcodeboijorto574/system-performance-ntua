@@ -131,8 +131,8 @@ int main()
   {
     calc_p();
     int k[3];
-    for (k[1] = 1; k[1] <= n[1]; ++k[1])
-      for (k[2] = 1; k[2] <= n[2]; ++k[2])
+    for (k[1] = 0; k[1] <= n[1]; ++k[1])
+      for (k[2] = (k[1] ? 0 : 1); k[2] <= n[2]; ++k[2])
       {
         // R
         for (int i = 1; i <= M; ++i)
@@ -145,8 +145,12 @@ int main()
               R[i][j] = D[i][j];
               break;
             case LI:
-              for (int l = 1; l <= C; ++l)
-                sum += Q[i][l][l == 1 ? k[1] - 1 : k[1]][l == 2 ? k[2] - 1 : k[2]];
+              for (int l = 1, pos1, pos2; l <= C; ++l)
+              {
+                pos1 = (j == 1 && k[1] > 0 ? k[1] - 1 : k[1]),
+                pos2 = (j == 2 && k[2] > 0 ? k[2] - 1 : k[2]);
+                sum += Q[i][l][pos1][pos2];
+              }
               R[i][j] = D[i][j] * (1.0 + sum);
               break;
             case LD:
