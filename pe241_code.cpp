@@ -1,5 +1,6 @@
 #include <iostream>
 #include <algorithm> // min()
+#include <cmath>     // abs()
 
 using namespace std;
 
@@ -16,28 +17,29 @@ enum TypeOfStation
 const int M = 15; // αριθμός σταθμών (i)
 const int C = 2;  // αριθμός κατηγοριών (j)
 const int N1 = 304, N2 = 240;
+const int N = N1 + N2; // αριθμός εργασιών (k)
 const int n[C + 1] = {DumVal, N1, N2};
-const int N = n[1] + n[2]; // αριθμός εργασιών (k)
 
-double Q[M + 1][C + 1][N1 + 1][N2 + 1]; // see Bard-Schweitzer approximation (algorithm 5.2)
+double Q[M + 1][C + 1];     // see Bard-Schweitzer approximation (algorithm 5.2)
+double Q_old[M + 1][C + 1]; // used for calculating the diversion
 double X[C + 1];
 const double D[M + 1][C + 1] = {
     {DumVal, DumVal, DumVal},
-    {DumVal, 25.0, 29.0},
-    {DumVal, 0.032, 0.0},
-    {DumVal, 0.0, 0.090},
-    {DumVal, 0.048, 0.134},
-    {DumVal, 0.025, 0.0},
-    {DumVal, 0.0, 0.016},
-    {DumVal, 0.059, 0.0},
-    {DumVal, 0.070, 0.0},
-    {DumVal, 0.0, 0.28},
-    {DumVal, 0.0, 0.025},
-    {DumVal, 0.048, 0.058},
-    {DumVal, 0.054, 0.066},
-    {DumVal, 0.069, 0.106}, // Dij(1) (never explicitly used)
-    {DumVal, 0.067, 0.072},
-    {DumVal, 0.088, 0.096}};
+    /* 1 */ {DumVal, 25.0, 29.0},
+    /* 2 */ {DumVal, 0.032, 0.0},
+    /* 3 */ {DumVal, 0.0, 0.090},
+    /* 4 */ {DumVal, 0.048, 0.134},
+    /* 5 */ {DumVal, 0.025, 0.0},
+    /* 6 */ {DumVal, 0.0, 0.016},
+    /* 7 */ {DumVal, 0.059, 0.0},
+    /* 8 */ {DumVal, 0.070, 0.0},
+    /* 9 */ {DumVal, 0.0, 0.028},
+    /* 10 */ {DumVal, 0.0, 0.025},
+    /* 11 */ {DumVal, 0.048, 0.058},
+    /* 12 */ {DumVal, 0.054, 0.066},
+    /* 13 */ {DumVal, 0.069, 0.106}, // Dij(1) (never explicitly used)
+    /* 14 */ {DumVal, 0.067, 0.072},
+    /* 15 */ {DumVal, 0.088, 0.096}};
 double D_13[C + 1][N + 1];
 const TypeOfStation type_of_station[M + 1] = {/* DumVal */ DELAY,
                                               /* 1 */ DELAY,
@@ -57,14 +59,58 @@ const TypeOfStation type_of_station[M + 1] = {/* DumVal */ DELAY,
                                               /* 15 */ LI};
 double a[N + 1];
 double m[C + 1][N + 1];
-double p[N + 1][N1 + 1][N2 + 1];
+double p[N + 1];
 double R[M + 1][C + 1];
 double U[M + 1][C + 1];
-double u[M + 1][C + 1];
+
+double maxD(int j)
+{
+  // return D[13][j];
+
+  // TODO: check correctness of code below
+  double max = D_13[j][1];
+  for (int k = 2; k <= n[j]; ++k)
+    if (max < D_13[j][k])
+      max = D_13[j][k];
+  return max;
+}
+
+double sumD(int j)
+{ // TODO: check correctness
+  double sum = 0.0;
+  for (int i = 1; i <= M; ++i)
+    sum += D[i][j];
+  return sum;
+}
+
+void calc_p() // depends on Xj, Dij, ak
+{
+  const int i = 13;
+
+  /* Calculating p13(0|N) */
+  double sum = 0.0, product[N + 1];
+  for (int k = 1; k <= N; ++k)
+  {
+    product[k] = 1;
+    for (int l = 1; l <= k; ++l)
+    {
+      double sum_nominator = 0;
+      for (int j = 1; j <= C; ++j)
+        sum_nominator += (X[j] * D[i][j]);
+      product[k] *= sum_nominator / a[l];
+    }
+    sum += product[k];
+  }
+  p[0] = 1.0 / (1.0 + sum);
+
+  /* Calculating p13(k|N) */
+  for (int k = 1; k <= N; ++k)
+    p[k] = p[0] * product[k];
+}
 
 int main()
 {
-  /* Initialization of D_13jk */
+  /* Initialization of D_13jk, ak, mjk */
   D_13[1][1] = D[13][1];
   D_13[2][1] = D[13][2];
   for (int k = 1; k <= N; ++k)
@@ -77,117 +123,68 @@ int main()
     }
   }
 
-  /* Initialization of p(k|N) */
-  for (int k = 1; k <= N; ++k)
+  /* Initialization of Qij (and Q_old) */
+  for (int i = 1; i <= M; ++i)
+    for (int j = 1; j <= C; ++j)
+      Q_old[i][1] = Q[i][j] =
+          type_of_station[i] != DELAY ? n[j] / M : DumVal;
+
+  /* Initialization of Xj */
+  for (int j = 1; j <= C; ++j)
+    X[j] = min(1 / maxD(j), n[j] / sumD(j)); // TODO: {max,sum}D to be checked
+
+  bool is_precision_achieved;
+  double precision = 0.0001;
+  do
   {
-    int n1 = (k >= N2 ? k - N2 : 0),
-        n2 = (k >= N2 ? N2 : k);
-    for (; n1 <= N1 && n2 >= 0; ++n1, --n2)
+    is_precision_achieved = true;
+
+    calc_p();
+
+    // R
+    for (int i = 1; i <= M; ++i)
+      for (int j = 1; j <= C; ++j)
+      {
+        double sum = 0.0;
+        switch (type_of_station[i])
+        {
+        case DELAY:
+          R[i][j] = D[i][j];
+          break;
+        case LI:
+          R[i][j] = D[i][j] * (1.0 + (n[j] - 1) / n[j] * Q[i][j] + (j == 1 ? Q[i][2] : Q[i][1]));
+          break;
+        case LD:
+          for (int k = 1; k <= N; ++k)
+            sum += k / a[k] * p[k - 1];
+          R[i][j] = D[i][j] * sum; // TODO: why is Dij used here? does it make sense?
+          break;
+        }
+      }
+
+    // X
+    for (int j = 1; j <= C; ++j)
     {
       double sum = 0.0;
-      for (int j = 1; j <= C; ++j)
-      {
-        int pos1, pos2;
-        if (n1 == 0 && n2 != 0)
-        {
-          pos1 = 0;
-          pos2 = n2 - 1;
-        }
-        else if (n1 != 0 && n2 == 0)
-        {
-          pos1 = n1 - 1;
-          pos2 = 0;
-        }
-        else if (n1 == 0 && n2 == 0)
-        {
-          pos1 = 0;
-          pos2 = 0;
-        }
-        else
-        {
-          if (j == 1)
-          {
-            pos1 = n1 - 1;
-            pos2 = n2;
-          }
-          else
-          {
-            pos1 = n1;
-            pos2 = n2 - 1;
-          }
-        }
-        sum += X[j] / m[j][k] * p[k - 1][pos1][pos2];
-      }
-      p[k][n1][n2] = sum;
+      for (int i = 1; i <= M; ++i)
+        sum += R[i][j];
+      X[j] = n[j] / sum;
     }
-  }
-  double sum = 0.0;
-  for (int l = 1; l <= N; ++l)
-    sum += p[l][N1][N2];
-  p[0][N1][N2] = 1 - sum;
 
-  /* MVA: Main algorithm */
-
-  /* Initialize Qij */
-  for (int i = 1; i <= M; ++i)
-    if (type_of_station[i] == LI)
+    // Q
+    for (int i = 1; i <= M; i += (i < M && type_of_station[i + 1] != LI) ? 2 : 1)
       for (int j = 1; j <= C; ++j)
-        Q[i][j][0][0] = 0.0;
-
-  for (int iteration = 0; iteration < 1; ++iteration)
-  {
-    int k[3];
-    for (k[1] = 0; k[1] <= n[1]; ++k[1])
-      for (k[2] = (k[1] ? 0 : 1); k[2] <= n[2]; ++k[2])
       {
-        // R
-        for (int i = 1; i <= M; ++i)
-          for (int j = 1; j <= C; ++j)
-          {
-            double sum = 0.0;
-            switch (type_of_station[i])
-            {
-            case DELAY:
-              R[i][j] = D[i][j];
-              break;
-            case LI:
-              for (int l = 1, pos1, pos2; l <= C; ++l)
-              {
-                pos1 = (j == 1 && k[1] > 0 ? k[1] - 1 : k[1]),
-                pos2 = (j == 2 && k[2] > 0 ? k[2] - 1 : k[2]);
-                sum += Q[i][l][pos1][pos2];
-              }
-              R[i][j] = D[i][j] * (1.0 + sum);
-              break;
-            case LD: // TODO: i think that this is false (see 4.56)
-              // This can be calculated only if uij is known, which
-              // in our case it isn't. So, we change to the approximating
-              // techniques for calculating Rij. Goodbyee! ^_^
-              // (Change branch :) )
-              break;
-            }
-          }
-
-        // X
-        for (int j = 1; j <= C; ++j)
-        {
-          double sum = 0.0;
-          for (int i = 1; i <= M; ++i)
-            sum += R[i][j];
-          X[j] = k[j] / sum;
-        }
-
-        // Q
-        for (int i = 1; i <= M; ++i)
-          for (int j = 1; j <= C; ++j)
-            Q[i][j][k[1]][k[2]] = X[j] * R[i][j];
+        Q[i][j] = X[j] * R[i][j];
+        if (abs(Q[i][j] - Q_old[i][j]) > precision)
+          is_precision_achieved = false;
       }
-  }
+  } while (is_precision_achieved);
 
   /* Calculation of Uij */
   for (int j = 1; j <= C; ++j)
     for (int i = 1; i <= M; ++i)
-      U[i][j] = X[j] * D[i][j];
+      U[i][j] = X[j] * D[i][j]; // TODO: if U > 1 then U = 1  ??
 
   /* Display Results */ // X,R,Q,U ανά κατηγορία και συνολικά
   printf("Ρυθμός απόδοσης Xj:\n\tX_1: %f\n\tX_2: %f\n", X[1], X[2]);
@@ -199,7 +196,6 @@ int main()
   {
     for (int i = 1; i <= M; ++i)
       R_[j] += R[i][j];
-
     printf("\tR_%d: %f\n", j, R_[j]);
   }
   printf("Συνολικός χρόνος απόκρισης R: %f\n", R_[1] + R_[2]);
@@ -207,15 +203,15 @@ int main()
   printf("Αριθμός εργασιών Qij:\n");
   for (int j = 1; j <= C; ++j)
     for (int i = 1; i <= M; ++i)
-      printf("\tQ_%d_%d: %f\n", i, j, Q[i][j][n[1]][n[2]]);
+      printf("\tQ_%d_%d: %f\n", i, j, Q[i][j]);
 
-  printf("Αριθμός εργασιών Qi (sum):\n");
+  printf("Αριθμός εργασιών Qi (sum):\n"); // TODO: sum or mean?
   double Q_sum[M + 1];
   for (int i = 1; i <= M; ++i)
   {
     Q_sum[i] = 0.0;
     for (int j = 1; j <= C; ++j)
-      Q_sum[i] += Q[i][j][n[1]][n[2]];
+      Q_sum[i] += Q[i][j];
     printf("\tQ_%d: %f\n", i, Q_sum[i]);
   }
 
@@ -224,7 +220,7 @@ int main()
     for (int i = 1; i <= M; ++i)
       printf("\tU_%d_%d: %f\n", i, j, U[i][j]);
 
-  printf("Βαθμός χρησιμοποίησης Ui (sum):\n");
+  printf("Βαθμός χρησιμοποίησης Ui (sum):\n"); // TODO: sum or mean?
   double U_sum[M + 1];
   for (int i = 1; i <= M; ++i)
   {
