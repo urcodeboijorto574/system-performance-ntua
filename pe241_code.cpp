@@ -130,7 +130,8 @@ int main()
     X[j] = min(1 / maxD(j), n[j] / sumD(j));
 
   bool is_precision_achieved;
-  double precision = 0.001;
+  double precision = 0.1;
+  int counter = 0;
   do
   {
     is_precision_achieved = true;
@@ -170,18 +171,27 @@ int main()
     // Q
     for (int i = 1; i <= M; ++i)
       for (int j = 1; j <= C; ++j)
+      {
+        Q_old[i][j] = Q[i][j];
         Q[i][j] = X[j] * R[i][j];
+      }
 
     /* Precision check */
+    double error_value = 0.0;
     for (int i = 1; i <= M; ++i)
+    {
       for (int j = 1; j <= C; ++j)
-        if (abs(Q[i][j] - Q_old[i][j]) > precision)
+        if ((error_value = abs(Q[i][j] - Q_old[i][j])) > precision)
         {
           is_precision_achieved = false;
           break;
         }
+      break;
+    }
 
-  } while (is_precision_achieved);
+    printf("counter: %d, error_value: %f\n", ++counter, error_value);
+
+  } while (!is_precision_achieved);
 
   /* Calculation of Uij */
   for (int j = 1; j <= C; ++j)
