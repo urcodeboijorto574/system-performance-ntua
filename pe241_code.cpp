@@ -65,13 +65,11 @@ double U[M + 1][C + 1];
 
 double maxD(int j)
 {
-  // return D[13][j];
-
   // TODO: check correctness of code below
-  double max = D_13[j][1];
-  for (int k = 2; k <= n[j]; ++k)
-    if (max < D_13[j][k])
-      max = D_13[j][k];
+  double max = D[1][j];
+  for (int i = 2; i <= n[j]; ++i)
+    if (max < D[i][j])
+      max = D[i][j];
   return max;
 }
 
@@ -155,7 +153,7 @@ int main()
         case LD:
           for (int k = 1; k <= N; ++k)
             sum += k / a[k] * p[k - 1];
-          R[i][j] = D[i][j] * sum; // TODO: why is Dij used here? does it make sense?
+          R[i][j] = D[i][j] * sum; // TODO: check correctness
           break;
         }
       }
@@ -188,7 +186,7 @@ int main()
   /* Calculation of Uij */
   for (int j = 1; j <= C; ++j)
     for (int i = 1; i <= M; ++i)
-      U[i][j] = X[j] * D[i][j]; // TODO: if U > 1 then U = 1  ??
+      U[i][j] = X[j] * D[i][j];
 
   /* Display Results */ // X,R,Q,U ανά κατηγορία και συνολικά
   printf("Ρυθμός απόδοσης Xj:\n\tX_1: %f\n\tX_2: %f\n", X[1], X[2]);
@@ -209,7 +207,7 @@ int main()
     for (int i = 1; i <= M; ++i)
       printf("\tQ_%d_%d: %f\n", i, j, Q[i][j]);
 
-  printf("Αριθμός εργασιών Qi (sum):\n"); // TODO: sum or mean?
+  printf("Αριθμός εργασιών Qi (sum):\n");
   double Q_sum[M + 1];
   for (int i = 1; i <= M; ++i)
   {
@@ -222,7 +220,7 @@ int main()
     for (int i = 1; i <= M; ++i)
       printf("\tU_%d_%d: %f\n", i, j, U[i][j]);
 
-  printf("Βαθμός χρησιμοποίησης Ui (sum):\n"); // TODO: sum or mean?
+  printf("Βαθμός χρησιμοποίησης Ui (sum):\n");
   double U_sum[M + 1];
   for (int i = 1; i <= M; ++i)
   {
