@@ -94,7 +94,7 @@ void calc_p13() // depends on Xj, Dij, ak
     {
       double sum_nominator = 0;
       for (int j = 1; j <= C; ++j)
-        sum_nominator += (X[j] * D[13][j]);
+        sum_nominator += (X[j] * D_13[j][k]); // TODO: check correctness of D
       product[k] *= sum_nominator / a[l];
     }
     sum += product[k];
