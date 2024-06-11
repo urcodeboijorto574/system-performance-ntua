@@ -83,10 +83,8 @@ double sumD(int j)
   return sum;
 }
 
-void calc_p() // depends on Xj, Dij, ak
+void calc_p13() // depends on Xj, Dij, ak
 {
-  const int i = 13;
-
   /* Calculating p13(0|N) */
   double sum = 0.0, product[N + 1];
   for (int k = 1; k <= N; ++k)
@@ -96,7 +94,7 @@ void calc_p() // depends on Xj, Dij, ak
     {
       double sum_nominator = 0;
       for (int j = 1; j <= C; ++j)
-        sum_nominator += (X[j] * D[i][j]);
+        sum_nominator += (X[j] * D[13][j]);
       product[k] *= sum_nominator / a[l];
     }
     sum += product[k];
@@ -131,15 +129,15 @@ int main()
 
   /* Initialization of Xj */
   for (int j = 1; j <= C; ++j)
-    X[j] = min(1 / maxD(j), n[j] / sumD(j)); // TODO: {max,sum}D to be checked
+    X[j] = min(1 / maxD(j), n[j] / sumD(j));
 
   bool is_precision_achieved;
-  double precision = 0.0001;
+  double precision = 0.001;
   do
   {
     is_precision_achieved = true;
 
-    calc_p();
+    calc_p13();
 
     // R
     for (int i = 1; i <= M; ++i)
@@ -172,13 +170,19 @@ int main()
     }
 
     // Q
-    for (int i = 1; i <= M; i += (i < M && type_of_station[i + 1] != LI) ? 2 : 1)
+    for (int i = 1; i <= M; ++i)
       for (int j = 1; j <= C; ++j)
-      {
         Q[i][j] = X[j] * R[i][j];
+
+    /* Precision check */
+    for (int i = 1; i <= M; ++i)
+      for (int j = 1; j <= C; ++j)
         if (abs(Q[i][j] - Q_old[i][j]) > precision)
+        {
           is_precision_achieved = false;
-      }
+          break;
+        }
+
   } while (is_precision_achieved);
 
   /* Calculation of Uij */
@@ -209,9 +213,7 @@ int main()
   double Q_sum[M + 1];
   for (int i = 1; i <= M; ++i)
   {
-    Q_sum[i] = 0.0;
-    for (int j = 1; j <= C; ++j)
-      Q_sum[i] += Q[i][j];
+    Q_sum[i] = Q[i][1] + Q[i][2];
     printf("\tQ_%d: %f\n", i, Q_sum[i]);
   }
 
