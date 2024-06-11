@@ -92,7 +92,7 @@ void calc_p13() // depends on Xj, Dij, ak
     {
       double sum_nominator = 0;
       for (int j = 1; j <= C; ++j)
-        sum_nominator += (X[j] * D[13][j]); // TODO: check correctness of D
+        sum_nominator += (X[j] * D_13[j][k]); // TODO: check correctness of D
       product[k] *= sum_nominator / a[l];
     }
     sum += product[k];
@@ -116,6 +116,7 @@ int main()
     {
       D_13[j][k] = D_13[j][1] / a[k];
       m[j][k] = 1 / D_13[j][k]; // TODO: check later for validity
+      // Here we use D_13 cause we can use nowhere else :)
     }
   }
 
@@ -149,11 +150,11 @@ int main()
           R[i][j] = D[i][j];
           break;
         case LI:
-          R[i][j] = D[i][j] * (1.0 + (n[j] - 1) / n[j] * Q[i][j] + (j == 1 ? Q[i][2] : Q[i][1]));
+          R[i][j] = D[i][j] * (1.0 + (n[j] - 1) * Q[i][j] / n[j] + (j == 1 ? Q[i][2] : Q[i][1]));
           break;
         case LD:
           for (int k = 1; k <= N; ++k)
-            sum += k / a[k] * p[k - 1];
+            sum += k * p[k - 1] / a[k];
           R[i][j] = D[i][j] * sum; // TODO: check correctness
           break;
         }
