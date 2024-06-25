@@ -55,13 +55,13 @@ for i in range(len(stations)):
         Sij[i].append(Dij[i][j] / vij[i][j])
 
 # Result variables
-# X_k: list of numbers that correspond to the average number of each cycle
+# X_k: list of numbers that correspond to the average number of each category
 # X_k_per_cycle: tuple of list of numbers that correspond to the average number of a category of each cycle
-lamda_j = [-1]
+lamda_j = [-1, -1, -1]
 lamda_j_per_cycle = ([-1], [-1], [-1])
-R_j = [-1]
+R_j = [-1, -1, -1]
 R_j_per_cycle = ([-1], [-1], [-1])
-U_i = [-1]
+U_i = [-1, -1, -1]
 U_i_per_cycle = ([-1], [-1], [-1])
 
 
@@ -117,7 +117,7 @@ STATION_current_category: list[str] = ["", "", ""]
 STATION_start_time: list[float] = [-1, -1, -1]
 STATION_remaining_time: list[float] = [-1, -1, -1]
 
-STATION_EMPTY_TIME: list[float] = [0, 0, 0]
+STATION_EMPTY_TIME: list[float] = [0, 0, 0]  # re-initialized for each cycle
 STATION_LAST_EMPTY: list[float] = [0, 0, 0]
 empty_STATION: list[bool] = [True, True, True]
 
@@ -211,10 +211,9 @@ def add_job_to_station(station: str, job_id: int, job_category: str) -> None:
         case _:
             if empty_STATION[i]:
                 set_current_counters(station, job_id, job_category, clock, service_time)
-                if empty_STATION[i]:
-                    STATION_EMPTY_TIME[i] += clock - STATION_LAST_EMPTY[i]
-                    STATION_LAST_EMPTY[i] = clock
-                    empty_STATION[i] = False
+                STATION_EMPTY_TIME[i] += clock - STATION_LAST_EMPTY[i]
+                STATION_LAST_EMPTY[i] = clock
+                empty_STATION[i] = False
             else:
                 STATION_queue[i].append([job_id, job_category, service_time])
 
@@ -251,6 +250,7 @@ check_condition = lambda ratio: ratio < 0.1
 # average1() computes the average value of a list disregarding its 1st element
 average1 = lambda lst: sum(lst[1:]) / (len(lst) - 1) if len(lst) > 1 else None
 average = lambda lst: sum(lst) / len(lst) if lst else None
+sum1 = lambda lst: sum(lst[1:]) if lst else None
 
 # print(f"arrival_rate: {arrival_rate}")
 # for i, station in enumerate(stations):
@@ -259,7 +259,6 @@ average = lambda lst: sum(lst) / len(lst) if lst else None
 while cycle_index < 1000:
     is_system_in_initial_state = curr_jobs == 0
     if is_system_in_initial_state and cycle_index != 0:
-        # print(f"Cycle {cycle_index} completed")
         cycles_length.append(clock - previous_regen_point)
         yi.append(sum(Qt) / cycles_length[cycle_index])
         previous_regen_point = clock
@@ -286,13 +285,13 @@ while cycle_index < 1000:
             STATION_empty_time_per_cycle[i].append(STATION_EMPTY_TIME[i])
             STATION_EMPTY_TIME[i] = 0
 
-        # TODO: check the confidence interval every 20 cycles
+        # Check the confidence interval every 20 cycles
         if cycle_index % 20 == 0 and cycle_index != 0:
             # Calculate R
             y_bar = average1(yi)
             c_bar = average1(cycles_length)
             n = cycle_index
-            Xi.append(yi[cycle_index] / cycles_length[cycle_index])
+            # Xi.append(yi[cycle_index] / cycles_length[cycle_index])
 
             sy_2 = 0
             sc_2 = 0
@@ -399,28 +398,37 @@ plt.show()
 
 
 ### OUTPUT RESULTS
-
-# TODO: result statistics
 # Ζητούμενα: λ, λj, R, Rj, Ui
 
 for j, category in enumerate(categories):
-    R_j[j] = round(float((average1(R_j_per_cycle[j]) / average1(Qj_cycle[j]))), 3)
+    lamda_j[j] = sum1(lamda_j_per_cycle[j]) / cycle_index
+    print(f"Average arrival time of category {category}: {lamda_j[j]}")
+print(f"Total average arrival time: {average_arrival_time}")
+
+for j, category in enumerate(categories):
+    R_j_per_cycle_without_zeros = [elem for elem in R_j_per_cycle[j] if elem != 0]
+    R_j[j] = round(
+        float((average1(R_j_per_cycle_without_zeros) / average1(Qj_cycle[j]))), 3
+    )
     print(f"Average response time for Category {category}: {R_j[j]}")
+R = sum(R_j)
+print(f"Average response time: {R}")
 
 for i, station in enumerate(stations):
-    U_i[i] = round(float(1 - average1(U_i_per_cycle[i]) / average1(cycles_length)), 3)
+    # U_i[i] = round(float(1 - average1(U_i_per_cycle[i]) / average1(cycles_length)), 3)
+    U_i[i] = (clock - sum1(STATION_empty_time_per_cycle[i])) / clock
     print(f"{station} utilization: {U_i[i]}")
 
 
-### DISK 'VISITS'
-the_list = []
-for key in disk_visits:
-    the_list.append(disk_visits[key])
+# ### DISK 'VISITS'
+# the_list = []
+# for key in disk_visits:
+#     the_list.append(disk_visits[key])
 
-N = 50
-bins = np.linspace(0, N, N + 1)
-answer = plt.hist(the_list, bins=bins)
-plt.title("Disk Visits")
-plt.ylabel("Number of jobs")
-plt.xlabel("Number of Visits")
-plt.show()
+# N = 50
+# bins = np.linspace(0, N, N + 1)
+# answer = plt.hist(the_list, bins=bins)
+# plt.title("Disk Visits")
+# plt.ylabel("Number of jobs")
+# plt.xlabel("Number of Visits")
+# plt.show()
