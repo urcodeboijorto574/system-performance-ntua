@@ -188,14 +188,14 @@ def add_job_to_station(station: str, job_id: int, job_category: str) -> None:
     def add_job_to_CPU_queue(
         job_id: int, job_category: str, service_time: float
     ) -> None:
-        # nonlocal i
-        i = 0  # CPU
-        insert_position = len(STATION_queue[i])
-        for index, value in enumerate(STATION_queue[i]):
+        insert_position = len(STATION_queue[station_index["CPU"]])
+        for index, value in enumerate(STATION_queue[station_index["CPU"]]):
             if value[2] > service_time:
                 insert_position = index
                 break
-        STATION_queue[i].insert(insert_position, [job_id, job_category, service_time])
+        STATION_queue[station_index["CPU"]].insert(
+            insert_position, [job_id, job_category, service_time]
+        )
         return
 
     match station:
