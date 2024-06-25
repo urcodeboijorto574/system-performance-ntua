@@ -320,8 +320,8 @@ while cycle_index < 1000:
     if cycle_index == 0:
         cycle_index = 1
 
-    time_of_next_arrival: float = arrival_time_of_job(job_id)
-    event = next_event(time_of_next_arrival)
+    time_of_arrival: float = arrival_time_of_job(job_id)
+    event = next_event(time_of_arrival)
 
     if event == "arrival":
         if curr_jobs > theta() and False:
@@ -330,7 +330,7 @@ while cycle_index < 1000:
             status("Job balked")
             continue
 
-        clock = time_of_next_arrival
+        clock = time_of_arrival
         disk_visits[job_id] = 0
         c: str = job_category()
         add_job_to_station("CPU", job_id, c)
