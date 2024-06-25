@@ -82,6 +82,13 @@ U = lambda: float(np.random.uniform())
 
 
 def job_category() -> str:
+    """
+    This function returns a category based on the number of
+    arrivals of said category per total arrivals.
+
+    Returns:
+        str: A string indicating the category of the job that arrived.
+    """
     p_A = 0.30640
     p_B = 0.37634
     # p_C = 0.31726
@@ -101,6 +108,13 @@ plot_list: tuple[list[int]] = ([], [], [], [])
 
 
 def status(event: str) -> None:
+    """
+    This function is used to updated the number of jobs in the system
+    every time a new event happens.
+
+    Args:
+        event (str): Dummy arguments that indicates the current event.
+    """
     for i, station in enumerate(stations):
         if station == "CPU":
             plot_list[0].append(len(STATION_queue[0]))
@@ -127,6 +141,19 @@ STATION_empty_time_per_cycle = ([-1], [-1], [-1])
 def set_current_counters(
     station: str, job: int, category: str, start_time: float, remaining_time: float
 ) -> None:
+    """
+    This function updates the variables of a station that correspond to the current job,
+    current category, start time and remaining time.
+
+    Args:
+        station (str): The station of which the corresponding variables will change.
+        job (int): Id of the job that is currently served by the station. If the station
+            if the CPU, which uses a Processor sharing policy, this is the id of the job
+            that requires the shortest time.
+        category (str): The category of the job.
+        start_time (float): The time that the station will start processing the job.
+        remaining_time (float): The required service time by the job.
+    """
     i = station_index[station]
     STATION_current_job[i] = job
     STATION_current_category[i] = category
@@ -136,6 +163,16 @@ def set_current_counters(
 
 
 def next_event(arrival_time: float) -> str:
+    """
+    This function calculates the event that will happen sooner.
+
+    Args:
+        arrival_time (float): The time that the next arrival will happen.
+
+    Returns:
+        str: Returns either the station that will finish serving a job or "arrival" if a
+            job will arrive in the system before a station finishes serving a job.
+    """
     valid_sum = lambda x, y: x + y if x != -1 and y != -1 else None
     CPU_finish_time = valid_sum(STATION_start_time[0], STATION_remaining_time[0])
     DISK_finish_time = valid_sum(STATION_start_time[1], STATION_remaining_time[1])
@@ -169,12 +206,27 @@ theta = lambda: np.random.normal(loc=12, scale=3)
 
 
 def decrease_CPU_remaining_time(time_passed: float) -> None:
+    """
+    This function decreases the remaining time of all the jobs in CPU's queue by the given
+    time.
+
+    Args:
+        time_passed (float): The time that the remaining times of the jobs will be reduced by.
+    """
     for index in range(len(STATION_queue[station_index["CPU"]])):
         STATION_queue[station_index["CPU"]][index][2] -= time_passed
     return
 
 
 def add_job_to_station(station: str, job_id: int, job_category: str) -> None:
+    """
+    This function adds a job to a station's queue.
+
+    Args:
+        station (str): The station-destination of the job.
+        job_id (int): The job id of the job that will be added.
+        job_category (str): The category of the job that will be added.
+    """
     global clock
     i = station_index[station]
     service_time = float(
@@ -186,6 +238,15 @@ def add_job_to_station(station: str, job_id: int, job_category: str) -> None:
     def add_job_to_CPU_queue(
         job_id: int, job_category: str, service_time: float
     ) -> None:
+        """
+        This function adds a job to the correct position of the CPU's queue. All the jobs
+        in the CPU's queue are sorted in increasing order of remaining service time.
+
+        Args:
+            job_id (int): The job's id that will be inserted into the queue.
+            job_category (str): The job's category that will be inserted into the queue.
+            service_time (flaot): The service time needed by the job.
+        """
         insert_position = len(STATION_queue[station_index["CPU"]])
         for index, value in enumerate(STATION_queue[station_index["CPU"]]):
             if value[2] > service_time:
@@ -218,6 +279,13 @@ def add_job_to_station(station: str, job_id: int, job_category: str) -> None:
 
 
 def load_job_from_queue(station: str) -> None:
+    """
+    This function takes the next job in a station's queue and puts it in position for
+    calculation. This station can only be a station that uses FIFO policy.
+
+    Args:
+        station (str): The station on which the load will happen.
+    """
     global clock
     i = station_index[station]
     if not STATION_queue[i]:
@@ -241,7 +309,6 @@ Qj_cycle: tuple[list[int]] = ([-1], [-1], [-1])
 Qt: list[int] = []  # re-initialized for each cycle
 # yi: interval of Qt divided by i-th cycle's length
 yi: list[float] = [-1]
-Xi: list[float] = [-1]
 check_condition = lambda ratio: ratio < 0.1
 
 # average1() computes the average value of a list disregarding its 1st element
