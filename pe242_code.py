@@ -36,7 +36,7 @@ v_CPU_B: float = v_DISK_B + 1
 v_CPU_C: float = v_DISK_C + 1
 v_OUT_A = v_OUT_B = v_OUT_C = 1
 
-arrival_rate: float = 256776 / 45100  # λ: total jobs per total time frame
+arrival_rate: float = 256776 / 45100  # λ: total arrivals per total time frame
 average_arrival_time: float = 1 / arrival_rate
 
 Dij = (
@@ -100,7 +100,7 @@ def job_category() -> str:
 plot_list: tuple[list[int]] = ([], [], [], [])
 
 
-def status(event: str) -> None:  # CHECK
+def status(event: str) -> None:
     for i, station in enumerate(stations):
         if station == "CPU":
             plot_list[0].append(len(STATION_queue[0]))
@@ -154,7 +154,7 @@ def next_event(arrival_time: float) -> str:
     return ["arrival", "CPU", "DISK", "OUT"][min_position]
 
 
-# # arrival_time(job_id: int) -> arrival_time_of_job: float
+# arrival_time(job_id: int) -> arrival_time_of_job: float
 arrival_time_of_job = lambda job_id: job_id * average_arrival_time
 # departure_time_of_job: dict[job_id, departure_time_of_job]
 departure_time_of_job: dict[int, float] = {}
@@ -169,10 +169,8 @@ theta = lambda: np.random.normal(loc=12, scale=3)
 
 
 def decrease_CPU_remaining_time(time_passed: float) -> None:
-    if time_passed == -1:
-        return
-    for job in STATION_queue[i]:
-        job[2] -= time_passed
+    for index in range(len(STATION_queue[station_index["CPU"]])):
+        STATION_queue[station_index["CPU"]][index][2] -= time_passed
     return
 
 
@@ -200,22 +198,21 @@ def add_job_to_station(station: str, job_id: int, job_category: str) -> None:
 
     match station:
         case "CPU":
-            decrease_CPU_remaining_time(clock - STATION_start_time[i])
+            if STATION_queue[i]:
+                decrease_CPU_remaining_time(clock - STATION_start_time[i])
             add_job_to_CPU_queue(job_id, job_category, service_time)
             job, category, remaining_time = STATION_queue[i][0]
             set_current_counters(station, job, category, clock, remaining_time)
-            if empty_STATION[i]:
-                STATION_EMPTY_TIME[i] += clock - STATION_LAST_EMPTY[i]
-                STATION_LAST_EMPTY[i] = clock
-                empty_STATION[i] = False
         case _:
             if empty_STATION[i]:
                 set_current_counters(station, job_id, job_category, clock, service_time)
-                STATION_EMPTY_TIME[i] += clock - STATION_LAST_EMPTY[i]
-                STATION_LAST_EMPTY[i] = clock
-                empty_STATION[i] = False
             else:
                 STATION_queue[i].append([job_id, job_category, service_time])
+
+    if empty_STATION[i]:
+        STATION_EMPTY_TIME[i] += clock - STATION_LAST_EMPTY[i]
+        STATION_LAST_EMPTY[i] = clock
+        empty_STATION[i] = False
 
     return
 
@@ -235,13 +232,13 @@ def load_job_from_queue(station: str) -> None:
 
 
 previous_regen_point = 0
-jobs_per_category: tuple[list[int]] = ([], [], [])
+jobs_per_category: tuple[list[int]] = ([], [], [])  # re-initialized for each cycle
 
 cycle_index: int = 0
 cycles_length: list[int] = [-1]
 Qj_cycle: tuple[list[int]] = ([-1], [-1], [-1])
 # Qt: list that contains the number of jobs in the system each time an event happens (clears after each cycles ends)
-Qt: list[int] = []
+Qt: list[int] = []  # re-initialized for each cycle
 # yi: interval of Qt divided by i-th cycle's length
 yi: list[float] = [-1]
 Xi: list[float] = [-1]
@@ -259,8 +256,7 @@ while cycle_index < 1000:
         yi.append(sum(Qt) / cycles_length[cycle_index])
         previous_regen_point = clock
 
-        # TODO: result statistics: lamda_j, R_j, U_i
-        # Insert the section that calculates the result statistics here
+        # Result statistics: lamda_j, R_j, U_i
         for j in range(len(categories)):
             Qj_cycle[j].append(len(jobs_per_category[j]))
             lamda_j_per_cycle[j].append(
@@ -287,7 +283,6 @@ while cycle_index < 1000:
             y_bar = average1(yi)
             c_bar = average1(cycles_length)
             n = cycle_index
-            # Xi.append(yi[cycle_index] / cycles_length[cycle_index])
 
             sy_2 = 0
             sc_2 = 0
@@ -324,6 +319,7 @@ while cycle_index < 1000:
     event = next_event(time_of_arrival)
 
     if event == "arrival":
+
         if curr_jobs > theta() and False:
             # TODO: how is the arrival rate λ calculated exactly?
             backed_jobs += 1
@@ -405,17 +401,3 @@ for i, station in enumerate(stations):
     # U_i[i] = round(float(1 - average1(U_i_per_cycle[i]) / average1(cycles_length)), 3)
     U_i[i] = (clock - sum1(STATION_empty_time_per_cycle[i])) / clock
     print(f"{station} utilization: {U_i[i]}")
-
-
-# ### DISK 'VISITS'
-# the_list = []
-# for key in disk_visits:
-#     the_list.append(disk_visits[key])
-
-# N = 50
-# bins = np.linspace(0, N, N + 1)
-# answer = plt.hist(the_list, bins=bins)
-# plt.title("Disk Visits")
-# plt.ylabel("Number of jobs")
-# plt.xlabel("Number of Visits")
-# plt.show()
