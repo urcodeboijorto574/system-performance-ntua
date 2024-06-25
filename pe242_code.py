@@ -5,10 +5,6 @@ from scipy.stats import erlang
 from collections import deque
 import matplotlib.pyplot as plt
 
-# There are a few things left that are no longer needed
-# parameters R_A, R_B, U_CPU, U_DISK (probably) don't provide any infomation and can be removed
-# function status and whatever derives from its use is also leftover and doesn't provide anything useful
-
 stations: tuple[str] = ("CPU", "DISK", "OUT")
 categories: tuple[str] = ("A", "B", "C")
 station_index: dict[str, int] = {}
@@ -170,12 +166,6 @@ job_id: int = 1
 curr_jobs: int = 0
 backed_jobs: int = 0
 theta = lambda: np.random.normal(loc=12, scale=3)
-
-arrivals_dict = {}
-arrivals_dict[average_arrival_time] = []
-for i in range(len(stations)):
-    for j in range(len(categories)):
-        arrivals_dict[Dij[i][j]] = []
 
 
 def decrease_CPU_remaining_time(time_passed: float) -> None:
@@ -406,17 +396,6 @@ plt.title("Histogram of jobs on the system")
 plt.xlabel("Number of jobs")
 plt.ylabel("Events with this number of jobs")
 plt.show()
-
-
-### CHECK ARRIVAL RATES
-# print("Simulation, True, Number of events")
-# for key in arrivals_dict.keys():
-#     print(
-#         np.round(key, 1),
-#         float(np.round(sum(arrivals_dict[key]) / len(arrivals_dict[key]), 1)),
-#         len(arrivals_dict[key]),
-#         sep=", ",
-#     )
 
 
 ### OUTPUT RESULTS
