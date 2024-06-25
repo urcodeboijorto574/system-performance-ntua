@@ -252,10 +252,6 @@ average1 = lambda lst: sum(lst[1:]) / (len(lst) - 1) if len(lst) > 1 else None
 average = lambda lst: sum(lst) / len(lst) if lst else None
 sum1 = lambda lst: sum(lst[1:]) if lst else None
 
-# print(f"arrival_rate: {arrival_rate}")
-# for i, station in enumerate(stations):
-#     print(f"average service time for {station}: {Sij[i][0]}, {Sij[i][1]}, {Sij[i][2]}")
-
 while cycle_index < 1000:
     is_system_in_initial_state = curr_jobs == 0
     if is_system_in_initial_state and cycle_index != 0:
@@ -332,13 +328,11 @@ while cycle_index < 1000:
             # TODO: how is the arrival rate λ calculated exactly?
             backed_jobs += 1
             status("Job balked")
-            # print("Job balked")
             continue
 
         clock = time_of_next_arrival
         disk_visits[job_id] = 0
         c: str = job_category()
-        # print(f"{c} Job arrived")
         add_job_to_station("CPU", job_id, c)
         jobs_per_category[category_index[c]].append(job_id)
         curr_jobs += 1
@@ -352,14 +346,9 @@ while cycle_index < 1000:
                 vij_DISK_category = vij[station_index["DISK"]][category_index[c]]
                 disk_visit_probability = vij_DISK_category / (vij_DISK_category + 1)
 
-                # CHECK
                 target_station = "DISK" if U() < disk_visit_probability else "OUT"
                 if target_station == "DISK":
-                    # print("CPU -> DISK")
                     disk_visits[STATION_current_job[i]] += 1
-                else:
-                    temp = 1
-                    # print("CPU -> OUT")
                 add_job_to_station(
                     target_station, STATION_current_job[i], STATION_current_category[i]
                 )
@@ -373,13 +362,11 @@ while cycle_index < 1000:
                     job, category, remaining_time = STATION_queue[i][0]
                     set_current_counters(station, job, category, clock, remaining_time)
             case "DISK":
-                # print("DISK -> CPU")
                 add_job_to_station(
                     "CPU", STATION_current_job[i], STATION_current_category[i]
                 )
                 load_job_from_queue(station)
             case "OUT":
-                # print(f"{STATION_current_category[i]} Job left")
                 departure_time_of_job[STATION_current_job[i]] = clock
                 curr_jobs -= 1
                 load_job_from_queue(station)
