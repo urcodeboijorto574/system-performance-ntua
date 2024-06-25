@@ -61,12 +61,12 @@ for i in range(len(stations)):
 # Result variables
 # X_k: list of numbers that correspond to the average number of each cycle
 # X_k_per_cycle: tuple of list of numbers that correspond to the average number of a category of each cycle
-lamda_j = [None]
-lamda_j_per_cycle = ([None], [None], [None])
-R_j = [None]
-R_j_per_cycle = ([None], [None], [None])
-U_i = [None]
-U_i_per_cycle = ([None], [None], [None])
+lamda_j = [-1]
+lamda_j_per_cycle = ([-1], [-1], [-1])
+R_j = [-1]
+R_j_per_cycle = ([-1], [-1], [-1])
+U_i = [-1]
+U_i_per_cycle = ([-1], [-1], [-1])
 
 
 def Erlang_4_service_time(category: str) -> float:
@@ -116,16 +116,16 @@ def status(event: str) -> None:  # CHECK
 
 STATION_queue = (deque(), deque(), deque())
 
-STATION_current_job: list[int] = [None, None, None]
-STATION_current_category: list[str] = [None, None, None]
-STATION_start_time: list[float] = [None, None, None]
-STATION_remaining_time: list[float] = [None, None, None]
+STATION_current_job: list[int] = [-1, -1, -1]
+STATION_current_category: list[str] = ["", "", ""]
+STATION_start_time: list[float] = [-1, -1, -1]
+STATION_remaining_time: list[float] = [-1, -1, -1]
 
 STATION_EMPTY_TIME: list[float] = [0, 0, 0]
 STATION_LAST_EMPTY: list[float] = [0, 0, 0]
 empty_STATION: list[bool] = [True, True, True]
 
-STATION_empty_time_per_cycle = ([None], [None], [None])
+STATION_empty_time_per_cycle = ([-1], [-1], [-1])
 
 
 def set_current_counters(
@@ -139,12 +139,8 @@ def set_current_counters(
     return
 
 
-valid_sum = lambda x, y: x + y if x is not None and y is not None else None
-valid_sub = lambda x, y: x - y if x is not None and y is not None else None
-valid_div = lambda x, y: x / y if x is not None and y is not None else None
-
-
 def next_event(arrival_time: float) -> str:
+    valid_sum = lambda x, y: x + y if x != -1 and y != -1 else None
     CPU_finish_time = valid_sum(STATION_start_time[0], STATION_remaining_time[0])
     DISK_finish_time = valid_sum(STATION_start_time[1], STATION_remaining_time[1])
     OUT_finish_time = valid_sum(STATION_start_time[2], STATION_remaining_time[2])
@@ -183,7 +179,7 @@ for i in range(len(stations)):
 
 
 def decrease_CPU_remaining_time(time_passed: float) -> None:
-    if not time_passed:
+    if time_passed == -1:
         return
     for job in STATION_queue[i]:
         job[2] -= time_passed
@@ -214,7 +210,7 @@ def add_job_to_station(station: str, job_id: int, job_category: str) -> None:
 
     match station:
         case "CPU":
-            decrease_CPU_remaining_time(valid_sub(clock, STATION_start_time[i]))
+            decrease_CPU_remaining_time(clock - STATION_start_time[i])
             add_job_to_CPU_queue(job_id, job_category, service_time)
             job, category, remaining_time = STATION_queue[i][0]
             set_current_counters(station, job, category, clock, remaining_time)
@@ -239,7 +235,7 @@ def load_job_from_queue(station: str) -> None:
     global clock
     i = station_index[station]
     if not STATION_queue[i]:
-        set_current_counters(station, None, None, None, None)
+        set_current_counters(station, -1, "", -1, -1)
         empty_STATION[i] = True
         STATION_LAST_EMPTY[i] = clock
     else:
@@ -253,13 +249,13 @@ previous_regen_point = 0
 jobs_per_category: tuple[list[int]] = ([], [], [])
 
 cycle_index: int = 0
-cycles_length: list[int] = [None]
-Qj_cycle: tuple[list[int]] = ([None], [None], [None])
-# Qt: list that contains the number of jobs in the system each time an event happens
+cycles_length: list[int] = [-1]
+Qj_cycle: tuple[list[int]] = ([-1], [-1], [-1])
+# Qt: list that contains the number of jobs in the system each time an event happens (clears after each cycles ends)
 Qt: list[int] = []
 # yi: interval of Qt divided by i-th cycle's length
-yi: list[float] = [None]
-Xi: list[float] = [None]
+yi: list[float] = [-1]
+Xi: list[float] = [-1]
 check_condition = lambda ratio: ratio < 0.1
 
 # average1() computes the average value of a list disregarding its 1st element
@@ -381,7 +377,7 @@ while cycle_index < 1000:
                 decrease_CPU_remaining_time(STATION_remaining_time[i])
                 STATION_queue[i].popleft()
                 if not STATION_queue[i]:
-                    set_current_counters(station, None, None, None, None)
+                    set_current_counters(station, -1, "", -1, -1)
                     STATION_LAST_EMPTY[i] = clock
                     empty_STATION[i] = True
                 else:
@@ -429,9 +425,7 @@ plt.show()
 # Ζητούμενα: λ, λj, R, Rj, Ui
 
 for j, category in enumerate(categories):
-    R_j[j] = round(
-        float(valid_div(average1(R_j_per_cycle[j]), average1(Qj_cycle[j]))), 3
-    )
+    R_j[j] = round(float((average1(R_j_per_cycle[j]) / average1(Qj_cycle[j]))), 3)
     print(f"Average response time for Category {category}: {R_j[j]}")
 
 for i, station in enumerate(stations):
