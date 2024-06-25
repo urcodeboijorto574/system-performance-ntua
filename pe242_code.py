@@ -9,6 +9,14 @@ import matplotlib.pyplot as plt
 # parameters R_A, R_B, U_CPU, U_DISK (probably) don't provide any infomation and can be removed
 # function status and whatever derives from its use is also leftover and doesn't provide anything useful
 
+stations: tuple[str] = ("CPU", "DISK", "OUT")
+categories: tuple[str] = ("A", "B", "C")
+station_index: dict[str, int] = {}
+category_index: dict[str, int] = {}
+for i, station in enumerate(stations):
+    station_index[station] = i
+for j, category in enumerate(categories):
+    category_index[category] = j
 
 sec_of_msec = lambda t: t * 0.001
 
@@ -35,34 +43,42 @@ v_OUT_A = v_OUT_B = v_OUT_C = 1
 arrival_rate: float = 256776 / 45100  # λ: total jobs per total time frame
 average_arrival_time: float = 1 / arrival_rate
 
-station_index = lambda st: 0 if st == "CPU" else 1 if st == "DISK" else 2
-category_index = lambda c: 0 if c == "A" else 1 if c == "B" else 2
-Dij = [
-    [D_CPU_A, D_CPU_B, D_CPU_C],
-    [D_DISK_A, D_DISK_B, D_DISK_C],
-    [D_OUT_A, D_OUT_B, D_OUT_C],
-]
-vij = [
-    [v_CPU_A, v_CPU_B, v_CPU_C],
-    [v_DISK_A, v_DISK_B, v_DISK_C],
-    [v_OUT_A, v_OUT_B, v_OUT_C],
-]
-Sij = [[], [], []]
-for i in range(3):
-    for j in range(3):
+Dij = (
+    (D_CPU_A, D_CPU_B, D_CPU_C),
+    (D_DISK_A, D_DISK_B, D_DISK_C),
+    (D_OUT_A, D_OUT_B, D_OUT_C),
+)
+vij = (
+    (v_CPU_A, v_CPU_B, v_CPU_C),
+    (v_DISK_A, v_DISK_B, v_DISK_C),
+    (v_OUT_A, v_OUT_B, v_OUT_C),
+)
+Sij = ([], [], [])
+for i in range(len(stations)):
+    for j in range(len(categories)):
         Sij[i].append(Dij[i][j] / vij[i][j])
+
+# Result variables
+# X_k: list of numbers that correspond to the average number of each cycle
+# X_k_per_cycle: tuple of list of numbers that correspond to the average number of a category of each cycle
+lamda_j = [None]
+lamda_j_per_cycle = ([None], [None], [None])
+R_j = [None]
+R_j_per_cycle = ([None], [None], [None])
+U_i = [None]
+U_i_per_cycle = ([None], [None], [None])
 
 
 def Erlang_4_service_time(category: str) -> float:
     # mean = k / λ
     k = 4
-    lamda = 4 / Sij[station_index("CPU")][category_index(category)]
+    lamda = k / Sij[station_index["CPU"]][category_index[category]]
     return erlang.rvs(a=k, scale=1 / lamda)
 
 
 def Exponential_service_time(station: str, category: str) -> float:
     # mean = 1 / λ
-    mean = Sij[station_index(station)][category_index(category)]
+    mean = Sij[station_index[station]][category_index[category]]
     return np.random.exponential(scale=mean)
 
 
@@ -82,23 +98,23 @@ def job_category() -> str:
         return "C"
 
 
-# Initialize
-
 # plot_list has 4 lists, one for each station. Every time an event happens, the number of jobs
 # using the station, either waiting in its queue or not, is appended on the station's list.
 # The last list is for the jobs that 'backed' from the system.
-plot_list: list[list[int]] = [[], [], [], []]
+plot_list: tuple[list[int]] = ([], [], [], [])
 
 
 def status(event: str) -> None:  # CHECK
-    plot_list[0].append(len(STATION_queue[0]))
-    for i in range(1, 3):  # i = i_DISK, i_OUT
-        plot_list[i].append(0 if empty_STATION[i] else len(STATION_queue[i]) + 1)
-    plot_list[3].append(backed_jobs)
+    for i, station in enumerate(stations):
+        if station == "CPU":
+            plot_list[0].append(len(STATION_queue[0]))
+        else:
+            plot_list[i].append(0 if empty_STATION[i] else len(STATION_queue[i]) + 1)
+    plot_list[len(stations)].append(backed_jobs)
     return
 
 
-STATION_queue = [deque(), deque(), deque()]
+STATION_queue = (deque(), deque(), deque())
 
 STATION_current_job: list[int] = [None, None, None]
 STATION_current_category: list[str] = [None, None, None]
@@ -109,11 +125,13 @@ STATION_EMPTY_TIME: list[float] = [0, 0, 0]
 STATION_LAST_EMPTY: list[float] = [0, 0, 0]
 empty_STATION: list[bool] = [True, True, True]
 
+STATION_empty_time_per_cycle = ([None], [None], [None])
+
 
 def set_current_counters(
     station: str, job: int, category: str, start_time: float, remaining_time: float
 ) -> None:
-    i = station_index(station)
+    i = station_index[station]
     STATION_current_job[i] = job
     STATION_current_category[i] = category
     STATION_start_time[i] = start_time
@@ -123,6 +141,7 @@ def set_current_counters(
 
 valid_sum = lambda x, y: x + y if x is not None and y is not None else None
 valid_sub = lambda x, y: x - y if x is not None and y is not None else None
+valid_div = lambda x, y: x / y if x is not None and y is not None else None
 
 
 def next_event(arrival_time: float) -> str:
@@ -145,8 +164,8 @@ def next_event(arrival_time: float) -> str:
 
 # # arrival_time(job_id: int) -> arrival_time_of_job: float
 arrival_time_of_job = lambda job_id: job_id * average_arrival_time
-# departure_time: dict[job_id, departure_time_of_job]
-departure_time: dict[int, float] = {}
+# departure_time_of_job: dict[job_id, departure_time_of_job]
+departure_time_of_job: dict[int, float] = {}
 # disk_visits: dict[job_id, current_number_of_visits]
 disk_visits: dict[int, float] = {}
 
@@ -158,17 +177,9 @@ theta = lambda: np.random.normal(loc=12, scale=3)
 
 arrivals_dict = {}
 arrivals_dict[average_arrival_time] = []
-for i in range(3):
-    for j in range(3):
+for i in range(len(stations)):
+    for j in range(len(categories)):
         arrivals_dict[Dij[i][j]] = []
-
-
-R_A_different = []
-R_B_different = []
-R_C_different = []
-U_CPU_different = []
-U_DISK_different = []
-U_OUT_different = []
 
 
 def decrease_CPU_remaining_time(time_passed: float) -> None:
@@ -181,7 +192,7 @@ def decrease_CPU_remaining_time(time_passed: float) -> None:
 
 def add_job_to_station(station: str, job_id: int, job_category: str) -> None:
     global clock
-    i = station_index(station)
+    i = station_index[station]
     service_time = float(
         Erlang_4_service_time(job_category)
         if station == "CPU"
@@ -226,7 +237,7 @@ def add_job_to_station(station: str, job_id: int, job_category: str) -> None:
 
 def load_job_from_queue(station: str) -> None:
     global clock
-    i = station_index(station)
+    i = station_index[station]
     if not STATION_queue[i]:
         set_current_counters(station, None, None, None, None)
         empty_STATION[i] = True
@@ -238,122 +249,161 @@ def load_job_from_queue(station: str) -> None:
     return
 
 
-old_clock = 0
-job_A, job_B, job_C = [], [], []
+previous_regen_point = 0
+jobs_per_category: tuple[list[int]] = ([], [], [])
 
-regens = 0
-regen_cycle_length_list = []
-num_of_A_jobs_in_regen_cycle = []
-num_of_B_jobs_in_regen_cycle = []
-num_of_C_jobs_in_regen_cycle = []
-Checkpoint = True  # <10% μέσης τιμής
+cycle_index: int = 0
+cycles_length: list[int] = [None]
+Qj_cycle: tuple[list[int]] = ([None], [None], [None])
+# Qt: list that contains the number of jobs in the system each time an event happens
+Qt: list[int] = []
+# yi: interval of Qt divided by i-th cycle's length
+yi: list[float] = [None]
+Xi: list[float] = [None]
+check_condition = lambda ratio: ratio < 0.1
 
-# average() computes the average value of a list disregarding its 1st element
-average = lambda lst: sum(lst[1:]) / (len(lst) - 1)
+# average1() computes the average value of a list disregarding its 1st element
+average1 = lambda lst: sum(lst[1:]) / (len(lst) - 1) if len(lst) > 1 else None
+average = lambda lst: sum(lst) / len(lst) if lst else None
 
-while Checkpoint and regens < 1000:
+# print(f"arrival_rate: {arrival_rate}")
+# for i, station in enumerate(stations):
+#     print(f"average service time for {station}: {Sij[i][0]}, {Sij[i][1]}, {Sij[i][2]}")
 
-    is_system_in_initial_state = empty_STATION == [True, True, True]
-    if is_system_in_initial_state:
-        # check the confidence interval every 20 cycles
-        if (regens - 1) % 20 == 0 and regens != 1:
+while cycle_index < 1000:
+    is_system_in_initial_state = curr_jobs == 0
+    if is_system_in_initial_state and cycle_index != 0:
+        # print(f"Cycle {cycle_index} completed")
+        cycles_length.append(clock - previous_regen_point)
+        yi.append(sum(Qt) / cycles_length[cycle_index])
+        previous_regen_point = clock
 
-            # calculate s ^ 2
-            y_bar = average(R_B_different)
-            c_bar = average(num_of_B_jobs_in_regen_cycle)
-            n = regens - 1
-
-            sy = 0
-            sc = 0
-            syc = 0
-            for i in range(1, regens):
-                sy += (R_B_different[i] - y_bar) ** 2
-                sc += (num_of_B_jobs_in_regen_cycle[i] - c_bar) ** 2
-                syc += (R_B_different[i] - y_bar) * (
-                    num_of_B_jobs_in_regen_cycle[i] - c_bar
-                )
-
-            sy /= n - 1
-            sc /= n - 1
-            syc /= n - 1
-            R = average(R_B_different) / average(num_of_B_jobs_in_regen_cycle)
-            s = sy - 2 * R * syc + R**2 * sc
-
-            # z for 0.95
-            z1_a_2 = 1.960
-            confidence_interval = (
-                z1_a_2 * float(np.sqrt(s)) / (c_bar * float(np.sqrt(n)))
+        # TODO: result statistics: lamda_j, R_j, U_i
+        # Insert the section that calculates the result statistics here
+        for j in range(len(categories)):
+            Qj_cycle[j].append(len(jobs_per_category[j]))
+            lamda_j_per_cycle[j].append(
+                Qj_cycle[j][cycle_index] / cycles_length[cycle_index]
             )
 
-            if confidence_interval / R < 0.1:  # 10%
-                Checkpoint = False
+            R_j_temp = []
+            for job in jobs_per_category[j]:
+                R_j_temp.append(departure_time_of_job[job] - arrival_time_of_job(job))
+            R_j_per_cycle[j].append(
+                sum(R_j_temp) / len(R_j_temp) if jobs_per_category[j] else 0
+            )
+
+        for i in range(len(stations)):
+            U_i_per_cycle[i].append(
+                1 - STATION_EMPTY_TIME[i] / cycles_length[cycle_index]
+            )
+            STATION_empty_time_per_cycle[i].append(STATION_EMPTY_TIME[i])
+            STATION_EMPTY_TIME[i] = 0
+
+        # TODO: check the confidence interval every 20 cycles
+        if cycle_index % 20 == 0 and cycle_index != 0:
+            # Calculate R
+            y_bar = average1(yi)
+            c_bar = average1(cycles_length)
+            n = cycle_index
+            Xi.append(yi[cycle_index] / cycles_length[cycle_index])
+
+            sy_2 = 0
+            sc_2 = 0
+            syc = 0
+            for index in range(1, cycle_index):
+                sy_2 += (yi[index] - y_bar) ** 2
+                sc_2 += (cycles_length[index] - c_bar) ** 2
+                syc += (yi[index] - y_bar) * (cycles_length[index] - c_bar)
+
+            sy_2 /= n - 1
+            sc_2 /= n - 1
+            syc /= n - 1
+
+            R = y_bar / c_bar
+            s_2 = sy_2 - 2 * R * syc + (R**2) * sc_2
+
+            a = 0.05  # βαθμός εμπιστοσύνης 95% = 1 - α
+            z1_a_2 = 1 - a / 2
+            s = float(np.sqrt(s_2))
+            confidence_interval = z1_a_2 * s / (c_bar * float(np.sqrt(n)))
+
+            if check_condition(confidence_interval / R):
                 break
 
-        cycle_length = clock - old_clock
-        regen_cycle_length_list.append(cycle_length)
-        old_clock = clock
-        regens += 1
+        for j in range(len(categories)):
+            jobs_per_category[j].clear()
+        Qt.clear()
+        cycle_index += 1
 
-        # TODO: result statistics
-        # Insert the section that calculates the result statistics here
+    if cycle_index == 0:
+        cycle_index = 1
 
-        job_A, job_B, job_C = [], [], []
-
-    time_of_next_arrival = arrival_time_of_job(job_id)
+    time_of_next_arrival: float = arrival_time_of_job(job_id)
     event = next_event(time_of_next_arrival)
 
     if event == "arrival":
-        if curr_jobs > theta():
+        if curr_jobs > theta() and False:
             # TODO: how is the arrival rate λ calculated exactly?
             backed_jobs += 1
-            status("Job left")
+            status("Job balked")
+            # print("Job balked")
             continue
 
         clock = time_of_next_arrival
         disk_visits[job_id] = 0
-        c = job_category()
+        c: str = job_category()
+        # print(f"{c} Job arrived")
         add_job_to_station("CPU", job_id, c)
-        (job_A if c == "A" else job_B if c == "B" else job_C).append(job_id)
+        jobs_per_category[category_index[c]].append(job_id)
         curr_jobs += 1
         job_id += 1
     else:
         station = event
-        i = station_index(station)
+        i = station_index[station]
         clock = STATION_start_time[i] + STATION_remaining_time[i]
         match station:
             case "CPU":
-                vij_DISK_category = vij[station_index("DISK")][category_index(c)]
+                vij_DISK_category = vij[station_index["DISK"]][category_index[c]]
                 disk_visit_probability = vij_DISK_category / (vij_DISK_category + 1)
 
                 # CHECK
                 target_station = "DISK" if U() < disk_visit_probability else "OUT"
                 if target_station == "DISK":
+                    # print("CPU -> DISK")
                     disk_visits[STATION_current_job[i]] += 1
+                else:
+                    temp = 1
+                    # print("CPU -> OUT")
                 add_job_to_station(
                     target_station, STATION_current_job[i], STATION_current_category[i]
                 )
                 decrease_CPU_remaining_time(STATION_remaining_time[i])
                 STATION_queue[i].popleft()
                 if not STATION_queue[i]:
-                    set_current_counters("CPU", None, None, None, None)
+                    set_current_counters(station, None, None, None, None)
                     STATION_LAST_EMPTY[i] = clock
                     empty_STATION[i] = True
                 else:
                     job, category, remaining_time = STATION_queue[i][0]
-                    set_current_counters("CPU", job, category, clock, remaining_time)
+                    set_current_counters(station, job, category, clock, remaining_time)
             case "DISK":
+                # print("DISK -> CPU")
                 add_job_to_station(
                     "CPU", STATION_current_job[i], STATION_current_category[i]
                 )
                 load_job_from_queue(station)
             case "OUT":
+                # print(f"{STATION_current_category[i]} Job left")
+                departure_time_of_job[STATION_current_job[i]] = clock
                 curr_jobs -= 1
                 load_job_from_queue(station)
 
+    Qt.append(curr_jobs)
     status(event)
 
 
-print(f"Regen cycles = {regens}")
+print(f"Regen cycles = {cycle_index}")
 t = list(range(len(plot_list[0])))
 plt.hist([x + y for (x, y) in zip(plot_list[0], plot_list[1])], bins="auto")
 plt.title("Histogram of jobs on the system")
@@ -363,14 +413,14 @@ plt.show()
 
 
 ### CHECK ARRIVAL RATES
-print("Simulation, True, Number of events")
-for key in arrivals_dict.keys():
-    print(
-        np.round(key, 1),
-        float(np.round(sum(arrivals_dict[key]) / len(arrivals_dict[key]), 1)),
-        len(arrivals_dict[key]),
-        sep=", ",
-    )
+# print("Simulation, True, Number of events")
+# for key in arrivals_dict.keys():
+#     print(
+#         np.round(key, 1),
+#         float(np.round(sum(arrivals_dict[key]) / len(arrivals_dict[key]), 1)),
+#         len(arrivals_dict[key]),
+#         sep=", ",
+#     )
 
 
 ### OUTPUT RESULTS
@@ -378,21 +428,15 @@ for key in arrivals_dict.keys():
 # TODO: result statistics
 # Ζητούμενα: λ, λj, R, Rj, Ui
 
+for j, category in enumerate(categories):
+    R_j[j] = round(
+        float(valid_div(average1(R_j_per_cycle[j]), average1(Qj_cycle[j]))), 3
+    )
+    print(f"Average response time for Category {category}: {R_j[j]}")
 
-R_A = round(float(average(R_A_different) / average(num_of_A_jobs_in_regen_cycle)), 3)
-print(f"Average response time for Category A: {R_A}")
-R_B = round(float(average(R_B_different) / average(num_of_B_jobs_in_regen_cycle)), 3)
-print(f"Average response time for Category B: {R_B}")
-R_C = round(float(average(R_C_different) / average(num_of_C_jobs_in_regen_cycle)), 3)
-print(f"Average response time for Category C: {R_C}")
-U_CPU = round(float(1 - average(U_CPU_different) / average(regen_cycle_length_list)), 3)
-print(f"CPU utilization: {U_CPU}")
-U_DISK = round(
-    float(1 - average(U_DISK_different) / average(regen_cycle_length_list)), 3
-)
-print(f"DISK utilization: {U_DISK}")
-U_OUT = round(float(1 - average(U_OUT_different) / average(regen_cycle_length_list)), 3)
-print(f"OUT utilization: {U_OUT}")
+for i, station in enumerate(stations):
+    U_i[i] = round(float(1 - average1(U_i_per_cycle[i]) / average1(cycles_length)), 3)
+    print(f"{station} utilization: {U_i[i]}")
 
 
 ### DISK 'VISITS'
