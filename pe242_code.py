@@ -438,7 +438,10 @@ while cycle_index < 1000:
 
 print(f"Regen cycles = {cycle_index}")
 t = list(range(len(plot_list[0])))
-plt.hist([x + y for (x, y) in zip(plot_list[0], plot_list[1])], bins="auto")
+plt.hist(
+    [x + y + z for (x, y, z) in zip(plot_list[0], plot_list[1], plot_list[2])],
+    bins="auto",
+)
 plt.title("Histogram of jobs on the system")
 plt.xlabel("Number of jobs")
 plt.ylabel("Events with this number of jobs")
