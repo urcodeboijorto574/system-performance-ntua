@@ -344,9 +344,7 @@ while cycle_index < 1000:
             STATION_empty_time_per_cycle[i].append(STATION_EMPTY_TIME[i])
             STATION_EMPTY_TIME[i] = 0
 
-        # Check the confidence interval every 20 cycles
         if cycle_index % 20 == 0 and cycle_index != 0:
-            # Calculate R
             y_bar = average1(yi)
             c_bar = average1(cycles_length)
             n = cycle_index
@@ -388,7 +386,7 @@ while cycle_index < 1000:
     if event == "arrival":
 
         if curr_jobs > theta() and False:
-            # TODO: how is the arrival rate λ calculated exactly?
+            # TODO
             backed_jobs += 1
             status("Job balked")
             continue
