@@ -101,9 +101,9 @@ def job_category() -> str:
         return "C"
 
 
-# plot_list has 3 lists, one for each station. Every time an event happens, the number of jobs
+# sys_state_per_event has 3 lists, one for each station. Every time an event happens, the number of jobs
 # using the station, either waiting in its queue or not, is appended on the station's list.
-plot_list: tuple[list[int]] = ([], [], [])
+sys_state_per_event: tuple[list[int]] = ([], [], [])
 
 
 def status(event: str) -> None:
@@ -112,13 +112,15 @@ def status(event: str) -> None:
     every time a new event happens.
 
     Args:
-        event (str): Dummy arguments that indicates the current event.
+        event (str): Dummy argument that indicates the current event.
     """
     for i, station in enumerate(stations):
         if station == "CPU":
-            plot_list[i].append(len(STATION_queue[i]))
+            sys_state_per_event[i].append(len(STATION_queue[i]))
         else:
-            plot_list[i].append(0 if empty_STATION[i] else len(STATION_queue[i]) + 1)
+            sys_state_per_event[i].append(
+                0 if empty_STATION[i] else len(STATION_queue[i]) + 1
+            )
     return
 
 
@@ -172,9 +174,18 @@ def next_event(arrival_time: float) -> str:
             job will arrive in the system before a station finishes serving a job.
     """
     valid_sum = lambda x, y: x + y if x != None and y != None else None
-    CPU_finish_time = valid_sum(STATION_start_time[0], STATION_remaining_time[0])
-    DISK_finish_time = valid_sum(STATION_start_time[1], STATION_remaining_time[1])
-    OUT_finish_time = valid_sum(STATION_start_time[2], STATION_remaining_time[2])
+    CPU_finish_time = valid_sum(
+        STATION_start_time[station_index["CPU"]],
+        STATION_remaining_time[station_index["CPU"]],
+    )
+    DISK_finish_time = valid_sum(
+        STATION_start_time[station_index["DISK"]],
+        STATION_remaining_time[station_index["DISK"]],
+    )
+    OUT_finish_time = valid_sum(
+        STATION_start_time[station_index["OUT"]],
+        STATION_remaining_time[station_index["OUT"]],
+    )
 
     lst = [arrival_time, CPU_finish_time, DISK_finish_time, OUT_finish_time]
 
@@ -425,9 +436,9 @@ while cycle_index < 1000:
     status(event)
 
 
-print(f"Regen cycles = {cycle_index}")
-t = list(range(len(plot_list[0])))
-CPU_jobs_per_cycle, DISK_jobs_per_cycle, OUT_jobs_per_cycle = plot_list
+print(f"Regenaration cycles = {cycle_index}")
+total_num_of_events = len(sys_state_per_event[0])
+CPU_jobs_per_cycle, DISK_jobs_per_cycle, OUT_jobs_per_cycle = sys_state_per_event
 total_jobs_per_event = [
     cpu + disk + out
     for cpu, disk, out in zip(
@@ -474,7 +485,6 @@ for total_jobs in total_jobs_per_event:
     if not total_jobs in times_of_N_jobs.keys():
         times_of_N_jobs[total_jobs] = 0
     times_of_N_jobs[total_jobs] += 1
-total_num_of_events = len(total_jobs_per_event)
 
 average_num_of_jobs = 0
 for index, key in enumerate(times_of_N_jobs):
