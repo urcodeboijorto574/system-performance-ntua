@@ -1,0 +1,33 @@
+4
+CPU Total Time per Job
+0
+1
+
+"
+([+-])?\d+([.]\d+)?
+
+
+Disk Total Time per Job
+0
+1
+
+"
+([+-])?\d+([.]\d+)?
+
+
+Disk �otal Number of Visits per Job
+0
+1
+
+"
+([+-])?\d+([.]\d+)?
+
+
+Outgoing Link Total Transmission Time per Job
+0
+1
+
+"
+([+-])?\d+([.]\d+)?
+
+

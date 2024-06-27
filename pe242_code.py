@@ -57,12 +57,12 @@ for i in range(len(stations)):
 # Result variables
 # X_k: list of numbers that correspond to the average number of each category
 # X_k_per_cycle: tuple of list of numbers that correspond to the average number of a category of each cycle
-lamda_j = [-1, -1, -1]
-lamda_j_per_cycle = ([-1], [-1], [-1])
-R_j = [-1, -1, -1]
-R_j_per_cycle = ([-1], [-1], [-1])
-U_i = [-1, -1, -1]
-U_i_per_cycle = ([-1], [-1], [-1])
+lamda_j = [None, None, None]
+lamda_j_per_cycle = ([None], [None], [None])
+R_j = [None, None, None]
+R_j_per_cycle = ([None], [None], [None])
+U_i = [None, None, None]
+U_i_per_cycle = ([None], [None], [None])
 
 
 def Erlang_4_service_time(category: str) -> float:
@@ -101,10 +101,9 @@ def job_category() -> str:
         return "C"
 
 
-# plot_list has 4 lists, one for each station. Every time an event happens, the number of jobs
+# plot_list has 3 lists, one for each station. Every time an event happens, the number of jobs
 # using the station, either waiting in its queue or not, is appended on the station's list.
-# The last list is for the jobs that 'backed' from the system.
-plot_list: tuple[list[int]] = ([], [], [], [])
+plot_list: tuple[list[int]] = ([], [], [])
 
 
 def status(event: str) -> None:
@@ -117,25 +116,24 @@ def status(event: str) -> None:
     """
     for i, station in enumerate(stations):
         if station == "CPU":
-            plot_list[0].append(len(STATION_queue[0]))
+            plot_list[i].append(len(STATION_queue[i]))
         else:
             plot_list[i].append(0 if empty_STATION[i] else len(STATION_queue[i]) + 1)
-    plot_list[len(stations)].append(backed_jobs)
     return
 
 
 STATION_queue = (deque(), deque(), deque())
 
-STATION_current_job: list[int] = [-1, -1, -1]
-STATION_current_category: list[str] = ["", "", ""]
-STATION_start_time: list[float] = [-1, -1, -1]
-STATION_remaining_time: list[float] = [-1, -1, -1]
+STATION_current_job: list[int] = [None, None, None]
+STATION_current_category: list[str] = [None, None, None]
+STATION_start_time: list[float] = [None, None, None]
+STATION_remaining_time: list[float] = [None, None, None]
 
 STATION_EMPTY_TIME: list[float] = [0, 0, 0]  # re-initialized for each cycle
 STATION_LAST_EMPTY: list[float] = [0, 0, 0]
 empty_STATION: list[bool] = [True, True, True]
 
-STATION_empty_time_per_cycle = ([-1], [-1], [-1])
+STATION_empty_time_per_cycle = ([None], [None], [None])
 
 
 def set_current_counters(
@@ -173,7 +171,7 @@ def next_event(arrival_time: float) -> str:
         str: Returns either the station that will finish serving a job or "arrival" if a
             job will arrive in the system before a station finishes serving a job.
     """
-    valid_sum = lambda x, y: x + y if x != -1 and y != -1 else None
+    valid_sum = lambda x, y: x + y if x != None and y != None else None
     CPU_finish_time = valid_sum(STATION_start_time[0], STATION_remaining_time[0])
     DISK_finish_time = valid_sum(STATION_start_time[1], STATION_remaining_time[1])
     OUT_finish_time = valid_sum(STATION_start_time[2], STATION_remaining_time[2])
@@ -200,9 +198,7 @@ disk_visits: dict[int, float] = {}
 
 clock: int = 0
 job_id: int = 1
-curr_jobs: int = 0
-backed_jobs: int = 0
-theta = lambda: np.random.normal(loc=12, scale=3)
+curr_jobs: int = 0  # re-initialized for each cycle (automatically)
 
 
 def decrease_CPU_remaining_time(time_passed: float) -> None:
@@ -289,7 +285,7 @@ def load_job_from_queue(station: str) -> None:
     global clock
     i = station_index[station]
     if not STATION_queue[i]:
-        set_current_counters(station, -1, "", -1, -1)
+        set_current_counters(station, None, None, None, None)
         empty_STATION[i] = True
         STATION_LAST_EMPTY[i] = clock
     else:
@@ -303,12 +299,12 @@ previous_regen_point = 0
 jobs_per_category: tuple[list[int]] = ([], [], [])  # re-initialized for each cycle
 
 cycle_index: int = 0
-cycles_length: list[int] = [-1]
-Qj_cycle: tuple[list[int]] = ([-1], [-1], [-1])
+cycles_length: list[int] = [None]
+Qj_cycle: tuple[list[int]] = ([None], [None], [None])
 # Qt: list that contains the number of jobs in the system each time an event happens (clears after each cycles ends)
 Qt: list[int] = []  # re-initialized for each cycle
 # yi: interval of Qt divided by i-th cycle's length
-yi: list[float] = [-1]
+yi: list[float] = [None]
 check_condition = lambda ratio: ratio < 0.1
 
 # average1() computes the average value of a list disregarding its 1st element
@@ -384,13 +380,6 @@ while cycle_index < 1000:
     event = next_event(time_of_arrival)
 
     if event == "arrival":
-
-        if curr_jobs > theta() and False:
-            # TODO
-            backed_jobs += 1
-            status("Job balked")
-            continue
-
         clock = time_of_arrival
         disk_visits[job_id] = 0
         c: str = job_category()
@@ -416,7 +405,7 @@ while cycle_index < 1000:
                 decrease_CPU_remaining_time(STATION_remaining_time[i])
                 STATION_queue[i].popleft()
                 if not STATION_queue[i]:
-                    set_current_counters(station, -1, "", -1, -1)
+                    set_current_counters(station, None, None, None, None)
                     STATION_LAST_EMPTY[i] = clock
                     empty_STATION[i] = True
                 else:
@@ -438,10 +427,16 @@ while cycle_index < 1000:
 
 print(f"Regen cycles = {cycle_index}")
 t = list(range(len(plot_list[0])))
-plt.hist(
-    [x + y + z for (x, y, z) in zip(plot_list[0], plot_list[1], plot_list[2])],
-    bins="auto",
-)
+CPU_jobs_per_cycle, DISK_jobs_per_cycle, OUT_jobs_per_cycle = plot_list
+total_jobs_per_event = [
+    cpu + disk + out
+    for cpu, disk, out in zip(
+        CPU_jobs_per_cycle, DISK_jobs_per_cycle, OUT_jobs_per_cycle
+    )
+]
+
+# Histogram
+plt.hist(total_jobs_per_event, bins="auto")
 plt.title("Histogram of jobs on the system")
 plt.xlabel("Number of jobs")
 plt.ylabel("Events with this number of jobs")
@@ -449,19 +444,19 @@ plt.show()
 
 
 ### OUTPUT RESULTS
-# Ζητούμενα: λ, λj, R, Rj, Ui
+# Ζητούμενα: λ, λj, R, Rj, Ui, balking_percentage
 
 for j, category in enumerate(categories):
     lamda_j[j] = sum1(lamda_j_per_cycle[j]) / cycle_index
-    print(f"Average arrival time of category {category}: {lamda_j[j]}")
-print(f"Total average arrival time: {average_arrival_time}")
+    print(f"Average arrival rate of category {category}: {lamda_j[j]}")
+print(f"Total average arrival rate: {1 / average_arrival_time}")
 
 for j, category in enumerate(categories):
     R_j_per_cycle_without_zeros = [elem for elem in R_j_per_cycle[j] if elem != 0]
     R_j[j] = round(
         float((average1(R_j_per_cycle_without_zeros) / average1(Qj_cycle[j]))), 3
     )
-    print(f"Average response time for Category {category}: {R_j[j]}")
+    print(f"Average response time for Category {category}: {float(np.round(R_j[j],3))}")
 R = sum(R_j)
 print(f"Average response time: {R}")
 
@@ -469,3 +464,40 @@ for i, station in enumerate(stations):
     # U_i[i] = round(float(1 - average1(U_i_per_cycle[i]) / average1(cycles_length)), 3)
     U_i[i] = (clock - sum1(STATION_empty_time_per_cycle[i])) / clock
     print(f"{station} utilization: {U_i[i]}")
+
+
+# times_of_N_jobs is a dictionary that maps the total number of jobs N in the system
+# with the number of events that happend while N number of jobs where in the system
+times_of_N_jobs: dict[int, int] = {}
+
+for total_jobs in total_jobs_per_event:
+    if not total_jobs in times_of_N_jobs.keys():
+        times_of_N_jobs[total_jobs] = 0
+    times_of_N_jobs[total_jobs] += 1
+total_num_of_events = len(total_jobs_per_event)
+
+average_num_of_jobs = 0
+for index, key in enumerate(times_of_N_jobs):
+    average_num_of_jobs += key * times_of_N_jobs[key]
+average_num_of_jobs /= total_num_of_events
+
+print(
+    f"Average number of jobs in the system (K): {float(np.round(average_num_of_jobs, 3))}"
+)
+
+K = lambda: np.random.poisson(average_num_of_jobs)
+entered_jobs = job_id - 1
+
+balked_jobs: int = 0
+theta = lambda: np.random.normal(loc=12, scale=3)
+
+for event_index in range(total_num_of_events):
+    if K() > theta():
+        balked_jobs += 1
+
+average_num_of_balked_jobs = balked_jobs / total_num_of_events
+
+balking_percentage = float(
+    average_num_of_balked_jobs / (entered_jobs + average_num_of_balked_jobs) * 100
+)
+print(f"Percentage of jobs that 'balked' from the system: {balking_percentage}%")
