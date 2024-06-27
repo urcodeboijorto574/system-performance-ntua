@@ -438,11 +438,56 @@ total_jobs_per_event = [
 
 # Output results: λ, λj, R, Rj, Ui, balking percentage
 
-# Histogram
+# Charts
+## Histogram
 plt.hist(total_jobs_per_event, bins="auto")
 plt.title("Histogram of jobs on the system")
 plt.xlabel("Number of jobs")
 plt.ylabel("Events with this number of jobs")
+plt.show()
+
+t = list(range(total_num_of_events))
+
+## Line chart
+plt.figure(figsize=(10, 6))
+plt.plot(t, total_jobs_per_event, marker="o", linestyle="-")
+
+plt.title("Total Number of Jobs in the System Over Time")
+plt.xlabel("Time (discrete events)")
+plt.ylabel("Total Number of Jobs")
+plt.grid(True)
+plt.show()
+
+## Bar chart
+plt.figure(figsize=(10, 6))
+plt.bar(t, total_jobs_per_event, color="skyblue")
+plt.title("Total Number of Jobs in the System Over Time")
+plt.xlabel("Time (discrete events)")
+plt.ylabel("Total Number of Jobs")
+plt.grid(True)
+plt.show()
+
+## Area chart
+CPU_cumulative = CPU_jobs_per_cycle
+DISK_cumulative = [cpu + disk for cpu, disk in zip(CPU_cumulative, DISK_jobs_per_cycle)]
+OUT_cumulative = [disk + out for disk, out in zip(DISK_cumulative, OUT_jobs_per_cycle)]
+plt.figure(figsize=(10, 6))
+plt.fill_between(t, 0, CPU_cumulative, label="CPU", color="skyblue", alpha=0.5)
+plt.fill_between(
+    t,
+    CPU_cumulative,
+    DISK_cumulative,
+    label="DISK",
+    color="lightgreen",
+    alpha=0.5,
+)
+plt.fill_between(
+    t, DISK_cumulative, OUT_cumulative, label="OUT", color="salmon", alpha=0.5
+)
+plt.title("Total Number of Jobs in the System Over Time")
+plt.xlabel("Time (discrete events)")
+plt.ylabel("Total Number of Jobs")
+plt.grid(True)
 plt.show()
 
 
