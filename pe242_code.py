@@ -173,31 +173,19 @@ def next_event(arrival_time: float) -> str:
         str: Returns either the station that will finish serving a job or "arrival" if a
             job will arrive in the system before a station finishes serving a job.
     """
-    valid_sum = lambda x, y: x + y if x != None and y != None else None
-    CPU_finish_time = valid_sum(
-        STATION_start_time[station_index["CPU"]],
-        STATION_remaining_time[station_index["CPU"]],
-    )
-    DISK_finish_time = valid_sum(
-        STATION_start_time[station_index["DISK"]],
-        STATION_remaining_time[station_index["DISK"]],
-    )
-    OUT_finish_time = valid_sum(
-        STATION_start_time[station_index["OUT"]],
-        STATION_remaining_time[station_index["OUT"]],
-    )
+    valid_sum = lambda x, y: x + y if x is not None and y is not None else None
 
-    lst = [arrival_time, CPU_finish_time, DISK_finish_time, OUT_finish_time]
+    min_value = arrival_time
+    result = "arrival"
+    for i in range(len(stations)):
+        STATION_finish_time = valid_sum(
+            STATION_start_time[i], STATION_remaining_time[i]
+        )
+        if STATION_finish_time is not None and min_value > STATION_finish_time:
+            min_value = STATION_finish_time
+            result = stations[i]
 
-    min_value = float("inf")
-    min_position = None
-
-    for index, value in enumerate(lst):
-        if value is not None and value < min_value:
-            min_value = value
-            min_position = index
-
-    return ["arrival", "CPU", "DISK", "OUT"][min_position]
+    return result
 
 
 # arrival_time(job_id: int) -> arrival_time_of_job: float
@@ -207,7 +195,7 @@ departure_time_of_job: dict[int, float] = {}
 # disk_visits: dict[job_id, current_number_of_visits]
 disk_visits: dict[int, float] = {}
 
-clock: int = 0
+clock: float = 0
 job_id: int = 1
 curr_jobs: int = 0  # re-initialized for each cycle (automatically)
 
