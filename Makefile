@@ -1,15 +1,24 @@
-# This Makefile is meant to be used on Windows OS. Might modify it so it can be ran in multiple OSs.
-
 CFLAGS = -Wall -O2
 
-pe241_code.exe: pe241_code.cpp
-	g++ -o pe241_code.exe pe241_code.cpp
+# Detect the OS
+ifeq ($(OS), Windows_NT)
+    EXE=pe241_code.exe
+    RM=rm
+    RUN=./pe241_code.exe
+else
+    EXE=pe241_code
+    RM=rm -f
+    RUN=./pe241_code
+endif
 
-run1: pe241_code.exe
-	.\pe241_code.exe
+$(EXE): pe241_code.cpp
+	g++ -o $(EXE) pe241_code.cpp $(CFLAGS)
 
-out1: pe241_code.exe
-	./pe241_code.exe > output.txt
+run1: $(EXE)
+	$(RUN)
+
+out1: $(EXE)
+	$(RUN) > output.txt
 
 clean:
-	rm pe241_code.exe
+	$(RM) $(EXE) output.txt
