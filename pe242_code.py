@@ -124,6 +124,9 @@ def status(event: str) -> None:
     return
 
 
+# STATION_queue has 3 fields, one for each station and it stores the corresponding
+# station's queue. Each element has the following structure:
+# (job_id, job_category, job_remaining_time)
 STATION_queue = (deque(), deque(), deque())
 
 STATION_current_job: list[int] = [None, None, None]
