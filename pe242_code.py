@@ -490,8 +490,23 @@ print(
     f"Average number of jobs in the system (K): {float(np.round(average_num_of_jobs, 3))}"
 )
 
-K = lambda: np.random.poisson(average_num_of_jobs)
-entered_jobs = job_id - 1
+entered_jobs: int = job_id - 1
+
+
+def K() -> int:
+    """
+    This function returns the number of possible jobs in the system based on the
+    probability found from 'total_jobs_per_event' list.
+
+    Returns:
+        int: The number of jobs in the system
+    """
+
+    U_temp = U()
+    while U_temp == 1.0:
+        U_temp = U()
+    return total_jobs_per_event[int(U_temp * (total_num_of_events))]
+
 
 balked_jobs: int = 0
 theta = lambda: np.random.normal(loc=12, scale=3)
