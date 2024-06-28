@@ -305,6 +305,7 @@ Qt: list[int] = []  # re-initialized for each cycle
 # yi: interval of Qt divided by i-th cycle's length
 yi: list[float] = [None]
 check_condition = lambda ratio: ratio < 0.1
+cycles_num_to_check = 20  # Trust degree: 95%
 
 # average1() computes the average value of a list disregarding its 1st element
 average1 = lambda lst: sum(lst[1:]) / (len(lst) - 1) if len(lst) > 1 else None
@@ -339,7 +340,7 @@ while cycle_index < 1000:
             STATION_empty_time_per_cycle[i].append(STATION_EMPTY_TIME[i])
             STATION_EMPTY_TIME[i] = 0
 
-        if cycle_index % 20 == 0 and cycle_index != 0:
+        if cycle_index % cycles_num_to_check == 0 and cycle_index != 0:
             y_bar = average1(yi)
             c_bar = average1(cycles_length)
             n = cycle_index
@@ -359,7 +360,8 @@ while cycle_index < 1000:
             R = y_bar / c_bar
             s_2 = sy_2 - 2 * R * syc + (R**2) * sc_2
 
-            a = 0.05  # βαθμός εμπιστοσύνης 95% = 1 - α
+            trust_degree = 100 - (100 / cycles_num_to_check)
+            a = (100 - trust_degree) * 0.01
             z1_a_2 = 1 - a / 2
             s = float(np.sqrt(s_2))
             confidence_interval = z1_a_2 * s / (c_bar * float(np.sqrt(n)))
