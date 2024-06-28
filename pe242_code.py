@@ -39,17 +39,17 @@ v_OUT_A = v_OUT_B = v_OUT_C = 1
 arrival_rate: float = 256776 / 45100  # λ: total arrivals per total time frame
 average_arrival_time: float = 1 / arrival_rate
 
-Dij = (
+Dij: tuple[tuple[float]] = (
     (D_CPU_A, D_CPU_B, D_CPU_C),
     (D_DISK_A, D_DISK_B, D_DISK_C),
     (D_OUT_A, D_OUT_B, D_OUT_C),
 )
-vij = (
+vij: tuple[tuple[float]] = (
     (v_CPU_A, v_CPU_B, v_CPU_C),
     (v_DISK_A, v_DISK_B, v_DISK_C),
     (v_OUT_A, v_OUT_B, v_OUT_C),
 )
-Sij = ([], [], [])
+Sij: tuple[list[float]] = ([], [], [])
 for i in range(len(stations)):
     for j in range(len(categories)):
         Sij[i].append(Dij[i][j] / vij[i][j])
@@ -57,16 +57,16 @@ for i in range(len(stations)):
 # Result variables
 # X_k: list of numbers that correspond to the average number of each category
 # X_k_per_cycle: tuple of list of numbers that correspond to the average number of a category of each cycle
-lamda_j = [None, None, None]
-lamda_j_per_cycle = ([None], [None], [None])
-R_j = [None, None, None]
-R_j_per_cycle = ([None], [None], [None])
-U_i = [None, None, None]
-U_i_per_cycle = ([None], [None], [None])
+lamda_j: list[float] = [None, None, None]
+lamda_j_per_cycle: tuple[list[float]] = ([None], [None], [None])
+R_j: list[float] = [None, None, None]
+R_j_per_cycle: tuple[list[float]] = ([None], [None], [None])
+U_i: list[float] = [None, None, None]
+U_i_per_cycle: tuple[list[float]] = ([None], [None], [None])
 
 
 def Erlang_4_service_time(category: str) -> float:
-    # mean = k / λ
+    # mean = k / λ => λ = k / mean
     k = 4
     lamda = k / Sij[station_index["CPU"]][category_index[category]]
     return erlang.rvs(a=k, scale=1 / lamda)
@@ -106,13 +106,10 @@ def job_category() -> str:
 sys_state_per_event: tuple[list[int]] = ([], [], [])
 
 
-def status(event: str) -> None:
+def status() -> None:
     """
     This function is used to updated the number of jobs in the system
     every time a new event happens.
-
-    Args:
-        event (str): Dummy argument that indicates the current event.
     """
     for i, station in enumerate(stations):
         if station == "CPU":
@@ -180,13 +177,13 @@ def next_event(arrival_time: float) -> str:
 
     min_value = arrival_time
     result = "arrival"
-    for i in range(len(stations)):
+    for i, station in enumerate(stations):
         STATION_finish_time = valid_sum(
             STATION_start_time[i], STATION_remaining_time[i]
         )
         if STATION_finish_time is not None and min_value > STATION_finish_time:
             min_value = STATION_finish_time
-            result = stations[i]
+            result = station
 
     return result
 
@@ -308,7 +305,7 @@ Qt: list[int] = []  # re-initialized for each cycle
 # yi: interval of Qt divided by i-th cycle's length
 yi: list[float] = [None]
 check_condition = lambda ratio: ratio < 0.1
-cycles_num_to_check = 20  # Trust degree: 95%
+cycles_num_to_check: int = 20  # Trust degree: 95%
 
 # average1() computes the average value of a list disregarding its 1st element
 average1 = lambda lst: sum(lst[1:]) / (len(lst) - 1) if len(lst) > 1 else None
@@ -426,7 +423,7 @@ while cycle_index < 1000:
                 load_job_from_queue(station)
 
     Qt.append(curr_jobs)
-    status(event)
+    status()
 
 
 print(f"Regenaration cycles = {cycle_index}")
