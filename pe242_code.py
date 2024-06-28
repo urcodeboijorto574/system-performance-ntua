@@ -447,8 +447,10 @@ plt.show()
 
 for j, category in enumerate(categories):
     lamda_j[j] = sum1(lamda_j_per_cycle[j]) / cycle_index
-    print(f"Average arrival rate of category {category}: {lamda_j[j]}")
-print(f"Total average arrival rate: {1 / average_arrival_time}")
+    print(
+        f"Average arrival rate of category {category}: {float(np.round(lamda_j[j], 4))}"
+    )
+print(f"Total average arrival rate: {float(np.round(1 / average_arrival_time, 4))}")
 
 for j, category in enumerate(categories):
     R_j_per_cycle_without_zeros = [elem for elem in R_j_per_cycle[j] if elem != 0]
@@ -462,7 +464,7 @@ print(f"Average response time: {R}")
 for i, station in enumerate(stations):
     # U_i[i] = round(float(1 - average1(U_i_per_cycle[i]) / average1(cycles_length)), 3)
     U_i[i] = (clock - sum1(STATION_empty_time_per_cycle[i])) / clock
-    print(f"{station} utilization: {U_i[i]}")
+    print(f"{station} utilization: {float(np.round(U_i[i], 3))}")
 
 
 # times_of_N_jobs is a dictionary that maps the total number of jobs N in the system
@@ -496,6 +498,9 @@ for event_index in range(total_num_of_events):
 average_num_of_balked_jobs = balked_jobs / total_num_of_events
 
 balking_percentage = float(
-    average_num_of_balked_jobs / (entered_jobs + average_num_of_balked_jobs) * 100
+    np.round(
+        average_num_of_balked_jobs / (entered_jobs + average_num_of_balked_jobs) * 100,
+        7,
+    )
 )
 print(f"Percentage of jobs that 'balked' from the system: {balking_percentage}%")
