@@ -1,4 +1,4 @@
-### SIMULATION MAIN ALGORITHM
+# Simulation program
 
 import numpy as np
 from scipy.stats import erlang
@@ -436,6 +436,8 @@ total_jobs_per_event = [
     )
 ]
 
+# Output results: λ, λj, R, Rj, Ui, balking percentage
+
 # Histogram
 plt.hist(total_jobs_per_event, bins="auto")
 plt.title("Histogram of jobs on the system")
@@ -443,9 +445,6 @@ plt.xlabel("Number of jobs")
 plt.ylabel("Events with this number of jobs")
 plt.show()
 
-
-### OUTPUT RESULTS
-# Ζητούμενα: λ, λj, R, Rj, Ui, balking_percentage
 
 for j, category in enumerate(categories):
     lamda_j[j] = sum1(lamda_j_per_cycle[j]) / cycle_index
